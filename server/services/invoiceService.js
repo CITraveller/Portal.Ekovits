@@ -1,4 +1,7 @@
+import fs from "fs";
+import path from "path";
 import { query, withTransaction } from "../db/connection.js";
+import { env } from "../config/env.js";
 import { calculateTotals, resolvedGstType } from "../utils/calculations.js";
 import { amountInWords, centsToAmount, toCents } from "../utils/money.js";
 import { badRequest, requireFields, validateEmail, validateGstin } from "../utils/validation.js";
@@ -6,14 +9,27 @@ import { uid } from "../utils/ids.js";
 import { getSettings } from "./settingsService.js";
 import { audit } from "./auditService.js";
 
-export async function listInvoices(search = "") {
+export async function listInvoices(search = "", filters = {}) {
   const params = [];
-  let where = "";
+  const clauses = ["i.deleted_at IS NULL"];
   if (search) {
     params.push(`%${search}%`);
-    where = `WHERE i.invoice_no ILIKE $1 OR i.client_name ILIKE $1 OR i.client_gstin ILIKE $1
-      OR i.payment_status ILIKE $1 OR i.invoice_status ILIKE $1 OR CAST(i.grand_total_cents / 100.0 AS TEXT) ILIKE $1`;
+    clauses.push(`(i.invoice_no ILIKE $${params.length} OR i.client_name ILIKE $${params.length} OR i.client_gstin ILIKE $${params.length}
+      OR i.payment_status ILIKE $${params.length} OR i.invoice_status ILIKE $${params.length} OR i.source ILIKE $${params.length} OR CAST(i.grand_total_cents / 100.0 AS TEXT) ILIKE $${params.length})`);
   }
+  if (filters.source === "system" || filters.source === "imported") {
+    params.push(filters.source);
+    clauses.push(`i.source=$${params.length}`);
+  }
+  if (["Draft", "Final", "Cancelled"].includes(filters.invoiceStatus)) {
+    params.push(filters.invoiceStatus);
+    clauses.push(`i.invoice_status=$${params.length}`);
+  }
+  if (["Paid", "Partially Paid", "Unpaid"].includes(filters.paymentStatus)) {
+    params.push(filters.paymentStatus);
+    clauses.push(`i.payment_status=$${params.length}`);
+  }
+  const where = `WHERE ${clauses.join(" AND ")}`;
   const { rows } = await query(`${baseInvoiceSelect(where)} ORDER BY i.created_at DESC`, params);
   return rows.map(mapInvoice);
 }
@@ -48,7 +64,7 @@ export async function previewNextInvoiceNumber() {
   });
 }
 
-export async function createInvoice(body) {
+export async function createInvoice(body, user = null) {
   validateInvoiceInput(body);
   return withTransaction(async (client) => {
     const settings = await getSettings(client);
@@ -61,15 +77,15 @@ export async function createInvoice(body) {
       `INSERT INTO invoices (
         id,invoice_no,invoice_date,due_date,place_of_supply,reverse_charge,gst_type,gst_override,payment_terms,reference_no,
         customer_id,client_name,client_address,shipping_address,contact_person,client_contact,client_email,client_gstin,client_state,client_state_code,notes,company_snapshot,
-        taxable_cents,cgst_cents,sgst_cents,igst_cents,total_gst_cents,round_off_cents,grand_total_cents,invoice_status,payment_status,revision
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,'Unpaid',0)
+        taxable_cents,cgst_cents,sgst_cents,igst_cents,total_gst_cents,round_off_cents,grand_total_cents,invoice_status,payment_status,revision,created_by,updated_by
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,'Unpaid',0,$31,$31)
       RETURNING *`,
       [id, invoiceNo, body.invoiceDate, body.dueDate || null, body.placeOfSupply || settings.state, body.reverseCharge || "No", gstType,
         (body.gstType || "auto") !== "auto", body.paymentTerms || "", body.referenceNo || "", body.customerId || null,
         body.clientName, body.clientAddress, body.shippingAddress || "", body.contactPerson || "", body.clientContact || "",
         body.clientEmail || "", String(body.clientGstin || "").toUpperCase(), body.clientState || "", body.clientStateCode || "",
         body.notes || "", snapshot, totals.taxableCents, totals.cgstCents, totals.sgstCents, totals.igstCents, totals.totalGstCents,
-        totals.roundOffCents, totals.grandTotalCents, body.invoiceStatus || "Draft"]
+        totals.roundOffCents, totals.grandTotalCents, body.invoiceStatus || "Draft", user?.sub || user?.id || null]
     );
     await insertItems(client, id, totals.items);
     await audit("Invoice Created", "invoice", id, summarizeInvoice(rows[0]), null, rows[0], "", client, invoiceNo);
@@ -77,8 +93,9 @@ export async function createInvoice(body) {
   });
 }
 
-export async function updateInvoice(id, body) {
+export async function updateInvoice(id, body, user = null) {
   const old = await getInvoice(id);
+  if (old.deletedAt) throw badRequest("Deleted invoices cannot be edited");
   validateInvoiceInput({ ...old, ...body, items: body.items || old.items });
   if (old.invoiceStatus === "Final" && !String(body.editReason || "").trim()) {
     throw badRequest("Edit reason is required when correcting a final invoice");
@@ -92,14 +109,14 @@ export async function updateInvoice(id, body) {
       `UPDATE invoices SET invoice_date=$2,due_date=$3,place_of_supply=$4,reverse_charge=$5,gst_type=$6,gst_override=$7,payment_terms=$8,reference_no=$9,
        customer_id=$10,client_name=$11,client_address=$12,shipping_address=$13,contact_person=$14,client_contact=$15,client_email=$16,client_gstin=$17,
        client_state=$18,client_state_code=$19,notes=$20,taxable_cents=$21,cgst_cents=$22,sgst_cents=$23,igst_cents=$24,total_gst_cents=$25,
-       round_off_cents=$26,grand_total_cents=$27,invoice_status=$28,revision=revision+1,updated_at=now()
+       round_off_cents=$26,grand_total_cents=$27,invoice_status=$28,revision=revision+1,updated_at=now(),updated_by=$29
        WHERE id=$1`,
       [id, next.invoiceDate, next.dueDate || null, next.placeOfSupply || settings.state, next.reverseCharge || "No", gstType,
         (next.gstType || "auto") !== "auto", next.paymentTerms || "", next.referenceNo || "", next.customerId || null,
         next.clientName, next.clientAddress, next.shippingAddress || "", next.contactPerson || "", next.clientContact || "", next.clientEmail || "",
         String(next.clientGstin || "").toUpperCase(), next.clientState || "", next.clientStateCode || "", next.notes || "",
         totals.taxableCents, totals.cgstCents, totals.sgstCents, totals.igstCents, totals.totalGstCents, totals.roundOffCents,
-        totals.grandTotalCents, next.invoiceStatus || old.invoiceStatus]
+        totals.grandTotalCents, next.invoiceStatus || old.invoiceStatus, user?.sub || user?.id || null]
     );
     await client.query("DELETE FROM invoice_items WHERE invoice_id=$1", [id]);
     await insertItems(client, id, totals.items);
@@ -127,7 +144,7 @@ export async function cancelInvoice(id, reason) {
   if (!reason) throw badRequest("Cancellation reason is required");
   const old = await getInvoice(id);
   const { rows } = await query(
-    "UPDATE invoices SET invoice_status='Cancelled', payment_status='Unpaid', cancellation_reason=$2, updated_at=now() WHERE id=$1 RETURNING *",
+    "UPDATE invoices SET invoice_status='Cancelled', payment_status='Unpaid', cancellation_reason=$2, cancelled_at=now(), updated_at=now() WHERE id=$1 AND deleted_at IS NULL RETURNING *",
     [id, reason]
   );
   await audit("Invoice Cancelled", "invoice", id, `Invoice ${old.invoiceNo} cancelled`, old, rows[0], reason, null, old.invoiceNo);
@@ -136,9 +153,39 @@ export async function cancelInvoice(id, reason) {
 
 export async function deleteInvoice(id, reason = "") {
   const old = await getInvoice(id);
-  await query("DELETE FROM invoices WHERE id=$1", [id]);
-  await audit("Invoice Deleted", "invoice", id, `Invoice ${old.invoiceNo} deleted`, old, null, reason, null, old.invoiceNo);
-  return { deleted: true };
+  if (!String(reason || "").trim()) throw badRequest("Deletion reason is required");
+  if (old.invoiceStatus === "Draft" && old.paymentStatus === "Unpaid" && !old.imported) {
+    await query("DELETE FROM invoices WHERE id=$1", [id]);
+    await audit("Invoice Deleted", "invoice", id, `Draft invoice ${old.invoiceNo} deleted`, old, null, reason, null, old.invoiceNo);
+    return { deleted: true, mode: "hard" };
+  }
+  await query("UPDATE invoices SET deleted_at=now(), deleted_reason=$2, updated_at=now() WHERE id=$1", [id, reason]);
+  await audit("Invoice Soft Deleted", "invoice", id, `Invoice ${old.invoiceNo} hidden from active records`, old, { deleted: true }, reason, null, old.invoiceNo);
+  return { deleted: true, mode: "soft" };
+}
+
+export async function attachOriginalDocument(id, file, user = null) {
+  if (!file) throw badRequest("PDF file is required");
+  const invoice = await getInvoice(id);
+  const relativePath = path.relative(path.resolve(env.uploadDir), path.resolve(file.path)).replaceAll("\\", "/");
+  const documentPath = `/uploads/${relativePath}`;
+  const { rows } = await query(
+    `UPDATE invoices SET original_document_path=$2, original_document_name=$3, updated_at=now(), updated_by=$4
+     WHERE id=$1 AND deleted_at IS NULL RETURNING *`,
+    [id, documentPath, file.originalname, user?.sub || user?.id || null]
+  );
+  await audit("Original Invoice Attached", "invoice", id, `Original document attached to ${invoice.invoiceNo}`, invoice, rows[0], "", null, invoice.invoiceNo);
+  return getInvoice(id);
+}
+
+export async function getOriginalDocument(id) {
+  const invoice = await getInvoice(id);
+  if (!invoice.originalDocumentPath) throw notFound("Original invoice document not found");
+  const relative = invoice.originalDocumentPath.replace(/^\/uploads\//, "");
+  const absolute = path.resolve(env.uploadDir, relative);
+  const uploadRoot = path.resolve(env.uploadDir);
+  if (!absolute.startsWith(uploadRoot) || !fs.existsSync(absolute)) throw notFound("Original invoice document not found");
+  return { absolute, filename: invoice.originalDocumentName || `${invoice.invoiceNo}.pdf` };
 }
 
 async function insertItems(client, invoiceId, items) {
@@ -237,6 +284,17 @@ export function mapInvoice(row) {
     paymentStatus: row.payment_status,
     revision: row.revision,
     cancellationReason: row.cancellation_reason || "",
+    imported: Boolean(row.imported),
+    source: row.source || (row.imported ? "imported" : "system"),
+    importedAt: row.imported_at,
+    importedBy: row.imported_by,
+    originalDocumentPath: row.original_document_path || "",
+    originalDocumentName: row.original_document_name || "",
+    deletedAt: row.deleted_at,
+    deletedReason: row.deleted_reason || "",
+    cancelledAt: row.cancelled_at,
+    createdBy: row.created_by,
+    updatedBy: row.updated_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

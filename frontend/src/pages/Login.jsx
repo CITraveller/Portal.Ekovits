@@ -4,16 +4,23 @@ export default function Login({ onLogin }) {
   const [form, setForm] = useState({ email: "support@ekovits.com", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const set = (key, value) => setForm({ ...form, [key]: value });
 
   const submit = async (event) => {
     event.preventDefault();
+    if (loading) return;
+    if (!form.email.trim() || !form.password) {
+      setError("Enter your email and password to continue.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
       await onLogin(form);
     } catch (err) {
-      setError(err.message || "Login failed");
+      const message = err.message || "Login failed";
+      setError(message.toLowerCase().includes("invalid") ? "Invalid email or password." : message);
     } finally {
       setLoading(false);
     }
@@ -31,8 +38,13 @@ export default function Login({ onLogin }) {
           <p>Sign in to access billing, GST records, payments, reports, and settings.</p>
         </div>
         {error && <div className="notice err-text">{error}</div>}
-        <label>Username<input type="email" required autoComplete="username" value={form.email} onChange={e => set("email", e.target.value)} /></label>
-        <label>Password<input type="password" required autoComplete="current-password" value={form.password} onChange={e => set("password", e.target.value)} /></label>
+        <label>Email<input type="email" required autoComplete="username" value={form.email} onChange={e => set("email", e.target.value)} disabled={loading} /></label>
+        <label>Password
+          <span className="password-field">
+            <input type={showPassword ? "text" : "password"} required autoComplete="current-password" value={form.password} onChange={e => set("password", e.target.value)} disabled={loading} />
+            <button type="button" className="secondary small" onClick={() => setShowPassword(!showPassword)} disabled={loading}>{showPassword ? "Hide" : "Show"}</button>
+          </span>
+        </label>
         <button className="primary" disabled={loading}>{loading ? "Signing in..." : "Login"}</button>
       </form>
     </main>

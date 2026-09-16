@@ -43,7 +43,21 @@ export const api = {
     update: (id, data) => request(`/invoices/${id}`, { method: "PUT", body: data }),
     remove: (id, reason) => request(`/invoices/${id}`, { method: "DELETE", body: { reason } }),
     duplicate: id => request(`/invoices/${id}/duplicate`, { method: "POST" }),
-    cancel: (id, reason) => request(`/invoices/${id}/cancel`, { method: "POST", body: { reason } })
+    cancel: (id, reason) => request(`/invoices/${id}/cancel`, { method: "POST", body: { reason } }),
+    importTemplateUrl: `${API_URL}/invoices/import/template`,
+    previewImport: form => request("/invoices/import/preview", { method: "POST", body: form }),
+    commitImport: form => request("/invoices/import/commit", { method: "POST", body: form }),
+    attachOriginal: (id, form) => request(`/invoices/${id}/original-document`, { method: "POST", body: form }),
+    originalDocumentUrl: id => `${API_URL}/invoices/${id}/original-document`
+  },
+  quotations: {
+    list: search => request(`/quotations${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    reserveNumber: () => request("/quotations/next-number", { method: "POST" }),
+    create: data => request("/quotations", { method: "POST", body: data }),
+    update: (id, data) => request(`/quotations/${id}`, { method: "PUT", body: data }),
+    remove: (id, reason) => request(`/quotations/${id}`, { method: "DELETE", body: { reason } }),
+    duplicate: id => request(`/quotations/${id}/duplicate`, { method: "POST" }),
+    cancel: (id, reason) => request(`/quotations/${id}/cancel`, { method: "POST", body: { reason } })
   },
   payments: {
     list: () => request("/payments"),

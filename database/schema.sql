@@ -108,15 +108,30 @@ CREATE TABLE IF NOT EXISTS invoices (
   grand_total_cents BIGINT NOT NULL DEFAULT 0,
   invoice_status TEXT NOT NULL CHECK (invoice_status IN ('Draft', 'Final', 'Cancelled')),
   payment_status TEXT NOT NULL CHECK (payment_status IN ('Unpaid', 'Partially Paid', 'Paid')) DEFAULT 'Unpaid',
+  source TEXT NOT NULL DEFAULT 'system' CHECK (source IN ('system', 'imported')),
+  imported BOOLEAN NOT NULL DEFAULT false,
+  imported_at TIMESTAMPTZ,
+  imported_by TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  original_document_path TEXT DEFAULT '',
+  original_document_name TEXT DEFAULT '',
+  deleted_at TIMESTAMPTZ,
+  deleted_by TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  deleted_reason TEXT DEFAULT '',
   revision INTEGER NOT NULL DEFAULT 0,
   cancellation_reason TEXT DEFAULT '',
+  cancelled_at TIMESTAMPTZ,
+  cancelled_by TEXT REFERENCES employees(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_by TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by TEXT REFERENCES employees(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices(invoice_date);
 CREATE INDEX IF NOT EXISTS idx_invoices_search ON invoices(invoice_no, client_name, client_gstin, payment_status, invoice_status);
+CREATE INDEX IF NOT EXISTS idx_invoices_source ON invoices(source, imported);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(invoice_status, payment_status);
 
 CREATE TABLE IF NOT EXISTS invoice_items (
   id TEXT PRIMARY KEY,
@@ -162,3 +177,72 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+
+CREATE TABLE IF NOT EXISTS quotation_number_sequences (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  prefix TEXT NOT NULL DEFAULT 'EKV-',
+  next_number BIGINT NOT NULL DEFAULT 20261 CHECK (next_number > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS quotations (
+  id TEXT PRIMARY KEY,
+  quotation_no TEXT NOT NULL UNIQUE,
+  quotation_date DATE NOT NULL,
+  valid_until DATE,
+  gst_type TEXT NOT NULL CHECK (gst_type IN ('intra', 'inter')),
+  gst_override BOOLEAN NOT NULL DEFAULT false,
+  reference_no TEXT DEFAULT '',
+  subject TEXT DEFAULT '',
+  customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL,
+  client_name TEXT NOT NULL,
+  client_address TEXT NOT NULL,
+  client_contact TEXT DEFAULT '',
+  client_email TEXT DEFAULT '',
+  client_gstin TEXT DEFAULT '',
+  client_state TEXT DEFAULT '',
+  client_state_code TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
+  terms TEXT DEFAULT '',
+  company_snapshot JSONB NOT NULL,
+  taxable_cents BIGINT NOT NULL DEFAULT 0,
+  cgst_cents BIGINT NOT NULL DEFAULT 0,
+  sgst_cents BIGINT NOT NULL DEFAULT 0,
+  igst_cents BIGINT NOT NULL DEFAULT 0,
+  total_gst_cents BIGINT NOT NULL DEFAULT 0,
+  round_off_cents BIGINT NOT NULL DEFAULT 0,
+  grand_total_cents BIGINT NOT NULL DEFAULT 0,
+  quotation_status TEXT NOT NULL CHECK (quotation_status IN ('Draft', 'Sent', 'Accepted', 'Rejected', 'Expired', 'Cancelled')) DEFAULT 'Draft',
+  revision INTEGER NOT NULL DEFAULT 0,
+  cancellation_reason TEXT DEFAULT '',
+  cancelled_at TIMESTAMPTZ,
+  cancelled_by TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  deleted_at TIMESTAMPTZ,
+  deleted_by TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  deleted_reason TEXT DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by TEXT REFERENCES employees(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_quotations_customer_id ON quotations(customer_id);
+CREATE INDEX IF NOT EXISTS idx_quotations_quotation_date ON quotations(quotation_date);
+CREATE INDEX IF NOT EXISTS idx_quotations_status ON quotations(quotation_status);
+CREATE INDEX IF NOT EXISTS idx_quotations_search ON quotations(quotation_no, client_name, client_gstin, quotation_status);
+
+CREATE TABLE IF NOT EXISTS quotation_items (
+  id TEXT PRIMARY KEY,
+  quotation_id TEXT NOT NULL REFERENCES quotations(id) ON DELETE CASCADE,
+  sr_no INTEGER NOT NULL CHECK (sr_no > 0),
+  description TEXT NOT NULL,
+  hsn TEXT NOT NULL,
+  gst_rate NUMERIC(6,2) NOT NULL CHECK (gst_rate >= 0),
+  qty NUMERIC(14,3) NOT NULL CHECK (qty > 0),
+  rate_cents BIGINT NOT NULL CHECK (rate_cents >= 0),
+  taxable_cents BIGINT NOT NULL CHECK (taxable_cents >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_quotation_items_quotation_id ON quotation_items(quotation_id);
+CREATE INDEX IF NOT EXISTS idx_quotation_items_hsn ON quotation_items(hsn);

@@ -4,6 +4,7 @@ const tabs = [
   ["dashboard", "Dashboard"],
   ["invoice", "New Invoice"],
   ["invoices", "Invoices"],
+  ["quotations", "Quotations"],
   ["customers", "Customers"],
   ["hsn", "HSN/SAC"],
   ["payments", "Payments"],

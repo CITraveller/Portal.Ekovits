@@ -4,6 +4,7 @@ import { Layout } from "./layouts/Layout.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import InvoiceForm from "./pages/InvoiceForm.jsx";
 import Invoices from "./pages/Invoices.jsx";
+import Quotations from "./pages/Quotations.jsx";
 import Customers from "./pages/Customers.jsx";
 import HsnSac from "./pages/HsnSac.jsx";
 import Payments from "./pages/Payments.jsx";
@@ -15,9 +16,10 @@ import { Toast } from "./components/Toast.jsx";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [data, setData] = useState({ settings: null, customers: [], hsn: [], invoices: [], payments: [], audit: [] });
+  const [data, setData] = useState({ settings: null, customers: [], hsn: [], invoices: [], payments: [], audit: [], quotations: [] });
   const [toast, setToast] = useState(null);
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [editingQuotation, setEditingQuotation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -29,15 +31,16 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const [settings, customers, hsn, invoices, payments, audit] = await Promise.all([
+      const [settings, customers, hsn, invoices, payments, audit, quotations] = await Promise.all([
         api.settings.get(),
         api.customers.list(),
         api.hsn.list(),
         api.invoices.list(),
         api.payments.list(),
-        api.audit()
+        api.audit(),
+        api.quotations.list()
       ]);
-      setData({ settings, customers, hsn, invoices, payments, audit });
+      setData({ settings, customers, hsn, invoices, payments, audit, quotations });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -63,7 +66,7 @@ export default function App() {
   const logout = async () => {
     await api.auth.logout();
     setUser(null);
-    setData({ settings: null, customers: [], hsn: [], invoices: [], payments: [], audit: [] });
+    setData({ settings: null, customers: [], hsn: [], invoices: [], payments: [], audit: [], quotations: [] });
     setActiveTab("dashboard");
     notify("Logged out.");
   };
@@ -76,8 +79,23 @@ export default function App() {
       setEditingInvoice(invoice);
       setActiveTab("invoice");
     },
+    duplicateInvoice(invoice) {
+      setEditingInvoice({ ...invoice, id: "", invoiceNo: "", invoiceStatus: "Draft", paymentStatus: "Unpaid", duplicateSourceId: invoice.id });
+      setActiveTab("invoice");
+    },
     clearEditingInvoice() {
       setEditingInvoice(null);
+    },
+    editQuotation(quotation) {
+      setEditingQuotation(quotation);
+      setActiveTab("quotations");
+    },
+    duplicateQuotation(quotation) {
+      setEditingQuotation({ ...quotation, id: "", quotationNo: "", quotationStatus: "Draft", duplicateSourceId: quotation.id });
+      setActiveTab("quotations");
+    },
+    clearEditingQuotation() {
+      setEditingQuotation(null);
     }
   }), [data]);
 
@@ -96,6 +114,7 @@ export default function App() {
       {!loading && !error && activeTab === "dashboard" && <Dashboard ctx={ctx} />}
       {!loading && !error && activeTab === "invoice" && <InvoiceForm ctx={ctx} editingInvoice={editingInvoice} />}
       {!loading && !error && activeTab === "invoices" && <Invoices ctx={ctx} />}
+      {!loading && !error && activeTab === "quotations" && <Quotations ctx={ctx} editingQuotation={editingQuotation} />}
       {!loading && !error && activeTab === "customers" && <Customers ctx={ctx} />}
       {!loading && !error && activeTab === "hsn" && <HsnSac ctx={ctx} />}
       {!loading && !error && activeTab === "payments" && <Payments ctx={ctx} />}

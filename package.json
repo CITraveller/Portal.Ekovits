@@ -5,6 +5,7 @@
   "scripts": {
     "install:all": "npm install --prefix server && npm install --prefix frontend",
     "db:setup": "npm run db:setup --prefix server",
+    "db:migrate": "npm run db:migrate --prefix server",
     "server:dev": "npm run dev --prefix server",
     "client:dev": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix frontend\"",

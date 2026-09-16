@@ -10,6 +10,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export default function InvoiceForm({ ctx, editingInvoice }) {
   const settings = ctx.settings;
+  const isEditing = Boolean(editingInvoice?.id && !editingInvoice?.duplicateSourceId);
   const [form, setForm] = useState(makeBlank(settings));
   const [preview, setPreview] = useState(null);
   const [numberLoading, setNumberLoading] = useState(false);
@@ -17,7 +18,15 @@ export default function InvoiceForm({ ctx, editingInvoice }) {
   useEffect(() => {
     if (editingInvoice) {
       reservedForBlankRef.current = false;
-      setForm(fromInvoice(editingInvoice));
+      const next = editingInvoice.duplicateSourceId ? { ...fromInvoice(editingInvoice), invoiceNo: "", invoiceStatus: "Draft", paymentStatus: "Unpaid" } : fromInvoice(editingInvoice);
+      setForm(next);
+      if (editingInvoice.duplicateSourceId) {
+        setNumberLoading(true);
+        api.invoices.reserveNumber()
+          .then(result => setForm(current => ({ ...current, invoiceNo: result.invoiceNo })))
+          .catch(err => ctx.notify(`Invoice number could not be generated: ${err.message}`, "err"))
+          .finally(() => setNumberLoading(false));
+      }
       return;
     }
     if (reservedForBlankRef.current) return;
@@ -48,13 +57,13 @@ export default function InvoiceForm({ ctx, editingInvoice }) {
   const submit = async (status) => {
     try {
       const payload = { ...form, gstType, invoiceStatus: status };
-      if (!editingInvoice) {
+      if (!isEditing) {
         // The invoiceNo shown while filling the form is only a preview.
         // Drop it here so the server reserves the real, authoritative
         // number at the moment the invoice is actually saved.
         delete payload.invoiceNo;
       }
-      editingInvoice ? await api.invoices.update(editingInvoice.id, payload) : await api.invoices.create(payload);
+      isEditing ? await api.invoices.update(editingInvoice.id, payload) : await api.invoices.create(payload);
       ctx.notify(status === "Final" ? "Final invoice saved." : "Draft invoice saved.");
       ctx.clearEditingInvoice();
       await ctx.reload();
@@ -73,10 +82,10 @@ export default function InvoiceForm({ ctx, editingInvoice }) {
   return (
     <section className="view active">
       <div className="section-head">
-        <div><h1>{editingInvoice ? `Edit Invoice ${editingInvoice.invoiceNo}` : "New Invoice"}</h1><p>Invoices are saved through Express into PostgreSQL.</p></div>
+        <div><h1>{isEditing ? `Edit Invoice ${editingInvoice.invoiceNo}` : editingInvoice?.duplicateSourceId ? "Duplicate Invoice" : "New Invoice"}</h1><p>Invoices are saved through Express into PostgreSQL.</p></div>
         <button className="secondary" onClick={startNewInvoice}>Clear</button>
       </div>
-      {editingInvoice?.invoiceStatus === "Final" && <div className="notice">Final invoice correction mode: enter a reason before saving changes.</div>}
+      {isEditing && editingInvoice?.invoiceStatus === "Final" && <div className="notice">Final invoice correction mode: enter a reason before saving changes.</div>}
       <form className="stack" onSubmit={e => { e.preventDefault(); submit("Final"); }}>
         <div className="panel">
           <h2>Invoice Details</h2>
@@ -108,7 +117,7 @@ export default function InvoiceForm({ ctx, editingInvoice }) {
         </div>
         <InvoiceItems items={form.items} hsn={ctx.hsn} updateItem={updateItem} addItem={() => set("items", [...form.items, emptyItem()])} removeItem={index => set("items", form.items.filter((_, i) => i !== index))} />
         <InvoiceTotals form={form} set={set} totals={totals} />
-        {editingInvoice?.invoiceStatus === "Final" && <div className="panel"><h2>Edit Reason</h2><label>Reason for correction<textarea required value={form.editReason || ""} onChange={e => set("editReason", e.target.value)} /></label></div>}
+        {isEditing && editingInvoice?.invoiceStatus === "Final" && <div className="panel"><h2>Edit Reason</h2><label>Reason for correction<textarea required value={form.editReason || ""} onChange={e => set("editReason", e.target.value)} /></label></div>}
         <div className="form-actions">
           <button type="button" className="secondary" onClick={openPreview} disabled={!form.invoiceNo}>Preview Invoice</button>
           <button type="button" className="secondary" onClick={() => submit("Draft")}>Save Draft</button>
