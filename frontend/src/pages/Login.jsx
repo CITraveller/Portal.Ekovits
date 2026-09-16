@@ -1,0 +1,40 @@
+import { useState } from "react";
+
+export default function Login({ onLogin }) {
+  const [form, setForm] = useState({ email: "support@ekovits.com", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const set = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await onLogin(form);
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="auth-shell">
+      <form className="login-card" onSubmit={submit}>
+        <div className="brand login-brand">
+          <span className="brand-mark">EK</span>
+          <div><strong>EKOVITS</strong><span>Invoice & GST Manager</span></div>
+        </div>
+        <div>
+          <h1>Employee Login</h1>
+          <p>Sign in to access billing, GST records, payments, reports, and settings.</p>
+        </div>
+        {error && <div className="notice err-text">{error}</div>}
+        <label>Username<input type="email" required autoComplete="username" value={form.email} onChange={e => set("email", e.target.value)} /></label>
+        <label>Password<input type="password" required autoComplete="current-password" value={form.password} onChange={e => set("password", e.target.value)} /></label>
+        <button className="primary" disabled={loading}>{loading ? "Signing in..." : "Login"}</button>
+      </form>
+    </main>
+  );
+}

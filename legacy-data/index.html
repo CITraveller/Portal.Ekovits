@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EKOVITS Invoice & GST Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"><span id="brandFallback">EK</span><img id="brandLogo" alt="Company logo"></span>
+      <div><strong>EKOVITS</strong><span>Invoice & GST Manager</span></div>
+    </div>
+    <nav class="tabs" aria-label="Primary">
+      <button data-tab="dashboard" class="active">Dashboard</button>
+      <button data-tab="invoice">New Invoice</button>
+      <button data-tab="invoices">Invoices</button>
+      <button data-tab="customers">Customers</button>
+      <button data-tab="hsn">HSN/SAC</button>
+      <button data-tab="payments">Payments</button>
+      <button data-tab="reports">Reports</button>
+      <button data-tab="settings">Settings</button>
+      <button data-tab="backup">Backup</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="dashboard" class="view active">
+      <div class="section-head">
+        <div><h1>Dashboard</h1><p>Local GST invoice records stored in this browser.</p></div>
+        <div class="filters">
+          <button data-range="today">Today</button>
+          <button data-range="week">This Week</button>
+          <button data-range="month" class="active">This Month</button>
+          <button data-range="fy">Financial Year</button>
+          <button data-range="all">All</button>
+        </div>
+      </div>
+      <div id="dashboardCards" class="metric-grid"></div>
+      <div class="panel"><h2>Recent Invoices</h2><div id="recentInvoices" class="compact-list"></div></div>
+    </section>
+
+    <section id="invoice" class="view">
+      <div class="section-head">
+        <div><h1 id="invoiceFormTitle">New Invoice</h1><p>Saved invoices can be corrected, recalculated, and saved with an audit entry.</p></div>
+        <div class="actions">
+          <button id="previewInvoiceBtn" class="secondary">Preview Invoice</button>
+          <button id="clearInvoiceBtn" class="secondary">Clear</button>
+        </div>
+      </div>
+      <div id="editNotice" class="notice hidden"></div>
+      <form id="invoiceForm" class="stack">
+        <div class="panel">
+          <h2>Invoice Details</h2>
+          <div class="grid four">
+            <label>Invoice Number<input id="invoiceNo" name="invoiceNo" readonly></label>
+            <label>Invoice Date<input id="invoiceDate" name="invoiceDate" type="date" required></label>
+            <label>Due Date<input id="dueDate" name="dueDate" type="date"></label>
+            <label>Place of Supply<input id="placeOfSupply" name="placeOfSupply" value="Maharashtra"></label>
+            <label>GST Treatment<select id="gstType" name="gstType"><option value="auto">Auto from states</option><option value="intra">CGST + SGST</option><option value="inter">IGST</option></select></label>
+            <label>Reverse Charge<select id="reverseCharge" name="reverseCharge"><option>No</option><option>Yes</option></select></label>
+            <label>Payment Terms<input id="paymentTerms" name="paymentTerms" value="Due on receipt"></label>
+            <label>Reference / PO<input id="referenceNo" name="referenceNo"></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="inline-title"><h2>Bill To</h2><button id="addCustomerInlineBtn" type="button" class="secondary small">Add New Client</button></div>
+          <div class="grid two">
+            <label>Select Existing Client<select id="customerSelect"><option value="">Select customer</option></select></label>
+            <label>Client Name<input id="clientName" name="clientName" required></label>
+            <label>Billing Address<textarea id="clientAddress" name="clientAddress" required></textarea></label>
+            <label>Shipping Address<textarea id="shippingAddress" name="shippingAddress"></textarea></label>
+            <label>Contact Person<input id="contactPerson" name="contactPerson"></label>
+            <label>Contact Number<input id="clientContact" name="clientContact"></label>
+            <label>Email ID<input id="clientEmail" name="clientEmail" type="email"></label>
+            <label>GSTIN<input id="clientGstin" name="clientGstin" maxlength="15"></label>
+            <label>State<input id="clientState" name="clientState" value="Maharashtra"></label>
+            <label>State Code<input id="clientStateCode" name="clientStateCode" value="27"></label>
+          </div>
+          <p id="gstinHint" class="hint">GSTIN format validation only. It does not verify GST registration online.</p>
+        </div>
+
+        <div class="panel">
+          <div class="inline-title"><h2>Line Items</h2><button id="addItemBtn" type="button" class="primary small">Add Line</button></div>
+          <div class="item-table">
+            <div class="item-head"><span>Sr.</span><span>Description</span><span>HSN/SAC</span><span>GST %</span><span>Qty</span><span>Rate</span><span>Taxable</span><span></span></div>
+            <div id="itemsBody"></div>
+          </div>
+        </div>
+
+        <div class="panel split">
+          <label>Terms &amp; Conditions / Notes<textarea id="notes" name="notes" placeholder="Add payment terms, delivery terms, or other notes"></textarea></label>
+          <div class="totals">
+            <div><span>Taxable Value</span><strong id="totalTaxable">₹0.00</strong></div>
+            <div><span>CGST</span><strong id="totalCgst">₹0.00</strong></div>
+            <div><span>SGST</span><strong id="totalSgst">₹0.00</strong></div>
+            <div><span>IGST</span><strong id="totalIgst">₹0.00</strong></div>
+            <div><span>Total GST</span><strong id="totalGst">₹0.00</strong></div>
+            <div><span>Round Off</span><strong id="roundOff">₹0.00</strong></div>
+            <div class="grand"><span>Grand Total</span><strong id="grandTotal">₹0.00</strong></div>
+            <p id="amountWords"></p>
+          </div>
+        </div>
+
+        <div id="revisionBox" class="panel hidden"><h2>Edit Reason</h2><label>Reason for correction<textarea id="editReason" placeholder="Example: Corrected rate mismatch after review"></textarea></label></div>
+        <div class="form-actions">
+          <button id="saveDraftBtn" type="button" class="secondary">Save Draft</button>
+          <button id="saveFinalBtn" type="submit" class="primary">Save Final Invoice</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="invoices" class="view">
+      <div class="section-head"><div><h1>Invoice History</h1><p>View, correct, print, duplicate, mark payment, or cancel invoices.</p></div><input id="invoiceSearch" class="search" placeholder="Search invoice, client, GSTIN, amount, status"></div>
+      <div id="invoiceList" class="record-list"></div>
+    </section>
+
+    <section id="customers" class="view">
+      <div class="section-head"><div><h1>Customer Master</h1><p>Reusable client records for invoice creation.</p></div><button id="newCustomerBtn" class="primary">Add Customer</button></div>
+      <input id="customerSearch" class="search" placeholder="Search by client, GSTIN, contact, email">
+      <div id="customerList" class="table-wrap"></div>
+    </section>
+
+    <section id="hsn" class="view">
+      <div class="section-head"><div><h1>HSN/SAC Master</h1><p>GST rates are copied into invoice lines and can be overridden per invoice.</p></div><button id="newHsnBtn" class="primary">Add HSN/SAC</button></div>
+      <input id="hsnSearch" class="search" placeholder="Search code or description">
+      <div id="hsnList" class="table-wrap"></div>
+    </section>
+
+    <section id="payments" class="view"><div class="section-head"><div><h1>Payments</h1><p>Outstanding and payment status tracking.</p></div></div><div id="paymentsList" class="table-wrap"></div></section>
+
+    <section id="reports" class="view">
+      <div class="section-head"><div><h1>Reports</h1><p>Basic internal GST/accounting summaries. This does not replace professional accounting or GST filing advice.</p></div><button id="exportReportsBtn" class="secondary">Export Reports</button></div>
+      <div class="grid two">
+        <div class="panel"><h2>GST Summary</h2><div id="gstSummary"></div></div>
+        <div class="panel"><h2>HSN/SAC-wise Summary</h2><div id="hsnSummary"></div></div>
+        <div class="panel"><h2>Customer-wise Sales</h2><div id="customerSummary"></div></div>
+        <div class="panel"><h2>Monthly Sales Summary</h2><div id="monthlySummary"></div></div>
+      </div>
+    </section>
+
+    <section id="settings" class="view">
+      <div class="section-head"><div><h1>Company Settings</h1><p>Future invoices use current settings. Saved invoices retain their historical snapshot.</p></div></div>
+      <form id="settingsForm" class="panel stack">
+        <div class="grid two">
+          <label>Company Name<input name="name"></label><label>GSTIN<input name="gstin" maxlength="15"></label>
+          <label>Address<textarea name="address"></textarea></label><label>State<input name="state"></label>
+          <label>State Code<input name="stateCode"></label><label>Contact Numbers<input name="contact"></label>
+          <label>Email<input name="email" type="email"></label><label>Website<input name="website"></label>
+          <label>Bank Name<input name="bankName"></label><label>Account Number<input name="accountNo"></label>
+          <label>IFSC<input name="ifsc"></label><label>Branch<input name="branch"></label>
+          <label>Authorised Signatory Name<input name="signatory"></label>
+          <label>Next Invoice Number<input name="nextInvoiceNumber" type="number"></label>
+        </div>
+        <div class="asset-grid"><label>Logo<input id="logoInput" type="file" accept="image/*"></label><label>Company Stamp<input id="stampInput" type="file" accept="image/*"></label><label>Signature<input id="signatureInput" type="file" accept="image/*"></label></div>
+        <div class="form-actions"><button type="submit" class="primary">Save Settings</button><button id="resetSampleBtn" type="button" class="secondary">Restore Sample Data</button></div>
+      </form>
+    </section>
+
+    <section id="backup" class="view">
+      <div class="section-head"><div><h1>Backup & Restore</h1><p>Use JSON for full fidelity. Excel-compatible exports are for records review and migration support.</p></div></div>
+      <div class="grid two">
+        <div class="panel stack"><h2>Export &amp; Excel Database</h2><button id="backupJsonBtn" class="primary">Backup All Data (JSON)</button><button id="syncExcelDbBtn" class="primary">Sync Excel Database</button><button id="connectExcelBtn" class="secondary">Connect Legacy Excel File</button><button id="exportExcelBtn" class="secondary">Export Complete Database (Excel-compatible)</button><button id="exportCustomersBtn" class="secondary">Export Customers</button><button id="exportHsnBtn" class="secondary">Export HSN/SAC</button><p id="excelSyncStatus" class="hint">Excel database folder is not connected.</p></div>
+        <div class="panel stack"><h2>Restore / Import</h2><label>Restore JSON backup or app-generated Excel-compatible file<input id="restoreInput" type="file" accept=".json,.xls,.html,.csv"></label><p class="hint">Use JSON backup for full restore. Excel files are live database outputs and can be opened or edited in Excel.</p></div>
+      </div>
+      <div class="panel"><h2>Audit Log</h2><div id="auditLog" class="table-wrap"></div></div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-card"><button id="modalClose" class="close" aria-label="Close">×</button><div id="modalBody"></div></div></div>
+  <div id="printRoot"></div>
+  <div id="toast" class="toast"></div>
+
+  <template id="customerFormTemplate">
+    <form id="customerForm" class="stack"><h2>Customer</h2><div class="grid two">
+      <label>Client/Company Name<input name="name" required></label><label>Customer Type<input name="type" value="Business"></label>
+      <label>Billing Address<textarea name="billingAddress" required></textarea></label><label>Shipping Address<textarea name="shippingAddress"></textarea></label>
+      <label>Contact Person<input name="contactPerson"></label><label>Contact Number<input name="contactNumber"></label>
+      <label>Email ID<input name="email" type="email"></label><label>GSTIN<input name="gstin" maxlength="15"></label>
+      <label>State<input name="state" value="Maharashtra"></label><label>State Code<input name="stateCode" value="27"></label>
+      <label>PAN<input name="pan"></label><label>Status<select name="active"><option value="true">Active</option><option value="false">Inactive</option></select></label>
+    </div><label>Notes<textarea name="notes"></textarea></label><button class="primary" type="submit">Save Customer</button></form>
+  </template>
+
+  <template id="hsnFormTemplate">
+    <form id="hsnForm" class="stack"><h2>HSN/SAC</h2><div class="grid two">
+      <label>HSN/SAC Code<input name="code" required></label><label>Description<input name="description" required></label>
+      <label>GST Rate %<input name="gstRate" type="number" step="0.01" value="18"></label><label>CGST Rate %<input name="cgstRate" type="number" step="0.01" value="9"></label>
+      <label>SGST Rate %<input name="sgstRate" type="number" step="0.01" value="9"></label><label>IGST Rate %<input name="igstRate" type="number" step="0.01" value="18"></label>
+      <label>Unit<input name="unit" value="No."></label><label>Status<select name="active"><option value="true">Active</option><option value="false">Inactive</option></select></label>
+    </div><label>Notes<textarea name="notes"></textarea></label><button class="primary" type="submit">Save HSN/SAC</button></form>
+  </template>
+
+  <template id="paymentFormTemplate">
+    <form id="paymentForm" class="stack"><h2>Payment</h2><div class="grid two">
+      <label>Payment Status<select name="paymentStatus"><option>Unpaid</option><option>Partially Paid</option><option>Paid</option></select></label><label>Payment Date<input name="paymentDate" type="date"></label>
+      <label>Amount Paid<input name="amountPaid" type="number" step="0.01"></label><label>Payment Mode<input name="paymentMode"></label>
+      <label>Transaction/Reference<input name="paymentRef"></label>
+    </div><label>Notes<textarea name="paymentNotes"></textarea></label><button class="primary" type="submit">Save Payment</button></form>
+  </template>
+
+  <script src="jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+services:
+  portal_db:
+    image: postgres:16-alpine
+    container_name: portal_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ekovits_invoice
+      POSTGRES_USER: portal_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - portal_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal_app -d ekovits_invoice"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  portal_backend:
+    build:
+      context: ./server
+    container_name: portal_backend
+    restart: unless-stopped
+    depends_on:
+      portal_db:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      DB_HOST: portal_db
+      DB_PORT: 5432
+      DB_NAME: ekovits_invoice
+      DB_USER: portal_app
+      DB_PASSWORD: ${DB_PASSWORD}
+      CLIENT_URL: https://portal.ekovits.com
+      UPLOAD_DIR: uploads
+    volumes:
+      - portal_uploads:/app/uploads
+    ports:
+      - "127.0.0.1:5005:5000"
+
+  portal_frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: https://portal.ekovits.com/api
+    container_name: portal_frontend
+    restart: unless-stopped
+    depends_on:
+      - portal_backend
+    ports:
+      - "127.0.0.1:3005:80"
+
+volumes:
+  portal_db_data:
+  portal_uploads:
