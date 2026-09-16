@@ -23,6 +23,7 @@ import { verifySchema } from "./db/init.js";
 fs.mkdirSync(env.uploadDir, { recursive: true });
 
 const app = express();
+app.set("trust proxy", 1);
 const allowedOrigins = new Set([
   env.clientUrl,
   "http://localhost:5173",
