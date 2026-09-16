@@ -24,6 +24,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
+  const [dataVersion, setDataVersion] = useState(0);
 
   const notify = (message, type = "") => setToast({ message, type, at: Date.now() });
   const reload = async () => {
@@ -41,6 +42,7 @@ export default function App() {
         api.quotations.list()
       ]);
       setData({ settings, customers, hsn, invoices, payments, audit, quotations });
+      setDataVersion(version => version + 1);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -111,7 +113,7 @@ export default function App() {
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} settings={data.settings} user={user} onLogout={logout}>
       {loading && <div className="panel">Loading PostgreSQL-backed data...</div>}
       {error && <div className="notice err-text">API error: {error}</div>}
-      {!loading && !error && activeTab === "dashboard" && <Dashboard ctx={ctx} />}
+      {!loading && !error && activeTab === "dashboard" && <Dashboard ctx={ctx} refreshKey={dataVersion} />}
       {!loading && !error && activeTab === "invoice" && <InvoiceForm ctx={ctx} editingInvoice={editingInvoice} />}
       {!loading && !error && activeTab === "invoices" && <Invoices ctx={ctx} />}
       {!loading && !error && activeTab === "quotations" && <Quotations ctx={ctx} editingQuotation={editingQuotation} />}

@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { api } from "../services/api.js";
 import { inr } from "../utils/money.js";
 
-export default function Dashboard() {
+export default function Dashboard({ refreshKey = 0 }) {
   const [range, setRange] = useState("month");
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
+    setError("");
     api.reports.dashboard(range).then(setDashboard).catch(err => setError(err.message));
-  }, [range]);
+  }, [range, refreshKey]);
   const cards = dashboard ? [
     ["Total Sales", inr(dashboard.salesCents)],
     ["Taxable Sales", inr(dashboard.taxableCents)],

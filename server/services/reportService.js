@@ -10,6 +10,7 @@ function rangeClause(range) {
 
 export async function dashboard(range = "month") {
   const where = rangeClause(range);
+  const activeWhere = `deleted_at IS NULL AND ${where}`;
   const { rows: metrics } = await query(
     `SELECT
       COALESCE(SUM(taxable_cents) FILTER (WHERE invoice_status <> 'Cancelled'),0)::bigint AS taxable_cents,
@@ -18,15 +19,15 @@ export async function dashboard(range = "month") {
       COUNT(*) FILTER (WHERE invoice_status <> 'Cancelled')::int AS invoice_count,
       COUNT(*) FILTER (WHERE invoice_status = 'Draft')::int AS draft_count,
       COUNT(*) FILTER (WHERE invoice_status = 'Cancelled')::int AS cancelled_count
-     FROM invoices WHERE ${where}`
+     FROM invoices WHERE ${activeWhere}`
   );
   const { rows: paidRows } = await query(
     `SELECT COALESCE(SUM(p.amount_cents),0)::bigint AS paid_cents
-     FROM payments p JOIN invoices i ON i.id=p.invoice_id WHERE i.invoice_status <> 'Cancelled' AND ${where.replaceAll("invoice_date", "i.invoice_date")}`
+     FROM payments p JOIN invoices i ON i.id=p.invoice_id WHERE i.deleted_at IS NULL AND i.invoice_status <> 'Cancelled' AND ${where.replaceAll("invoice_date", "i.invoice_date")}`
   );
   const { rows: recent } = await query(
     `SELECT invoice_no, client_name, grand_total_cents, payment_status, invoice_status, invoice_date
-     FROM invoices ORDER BY created_at DESC LIMIT 8`
+     FROM invoices WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 8`
   );
   const m = metrics[0];
   const paidCents = Number(paidRows[0].paid_cents || 0);
@@ -51,7 +52,7 @@ export async function gstSummary() {
       COALESCE(SUM(sgst_cents),0)::bigint sgst_cents,
       COALESCE(SUM(igst_cents),0)::bigint igst_cents,
       COALESCE(SUM(total_gst_cents),0)::bigint total_gst_cents
-     FROM invoices WHERE invoice_status <> 'Cancelled'`
+     FROM invoices WHERE deleted_at IS NULL AND invoice_status <> 'Cancelled'`
   );
   return rows[0];
 }
@@ -62,7 +63,7 @@ export async function hsnSummary() {
       COALESCE(SUM(it.taxable_cents),0)::bigint AS taxable_cents,
       COALESCE(SUM(CASE WHEN i.gst_type='intra' THEN round(it.taxable_cents * it.gst_rate / 100.0) ELSE round(it.taxable_cents * it.gst_rate / 100.0) END),0)::bigint AS gst_cents
      FROM invoice_items it JOIN invoices i ON i.id=it.invoice_id
-     WHERE i.invoice_status <> 'Cancelled'
+     WHERE i.deleted_at IS NULL AND i.invoice_status <> 'Cancelled'
      GROUP BY it.hsn ORDER BY it.hsn`
   );
   return rows.map(r => ({ ...r, invoice_value_cents: Number(r.taxable_cents) + Number(r.gst_cents) }));
@@ -71,7 +72,7 @@ export async function hsnSummary() {
 export async function customerSummary() {
   const { rows } = await query(
     `SELECT client_name, COUNT(*)::int invoices, COALESCE(SUM(taxable_cents),0)::bigint taxable_cents, COALESCE(SUM(grand_total_cents),0)::bigint invoice_value_cents
-     FROM invoices WHERE invoice_status <> 'Cancelled' GROUP BY client_name ORDER BY invoice_value_cents DESC`
+     FROM invoices WHERE deleted_at IS NULL AND invoice_status <> 'Cancelled' GROUP BY client_name ORDER BY invoice_value_cents DESC`
   );
   return rows;
 }
@@ -80,7 +81,7 @@ export async function monthlySummary() {
   const { rows } = await query(
     `SELECT to_char(date_trunc('month', invoice_date), 'YYYY-MM') AS month, COUNT(*)::int invoices,
       COALESCE(SUM(taxable_cents),0)::bigint taxable_cents, COALESCE(SUM(grand_total_cents),0)::bigint invoice_value_cents
-     FROM invoices WHERE invoice_status <> 'Cancelled' GROUP BY 1 ORDER BY 1`
+     FROM invoices WHERE deleted_at IS NULL AND invoice_status <> 'Cancelled' GROUP BY 1 ORDER BY 1`
   );
   return rows;
 }

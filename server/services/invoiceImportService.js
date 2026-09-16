@@ -15,6 +15,41 @@ const headers = [
   "Taxable Amount", "Line CGST", "Line SGST", "Line IGST", "Line Total"
 ];
 
+const aliases = {
+  "Invoice Number": ["Invoice Number", "Invoice No", "Invoice No."],
+  "Invoice Date": ["Invoice Date", "Billing Date"],
+  "Customer Name": ["Customer Name", "Company Name", "Client Name"],
+  "Customer GSTIN": ["Customer GSTIN", "GSTIN", "Client GSTIN"],
+  "Customer Address": ["Customer Address", "Billing Address"],
+  "Customer State": ["Customer State", "State"],
+  "Customer Email": ["Customer Email", "Email", "Email ID"],
+  "Customer Phone": ["Customer Phone", "Phone", "Contact", "Contact Number"],
+  "PO Number": ["PO Number", "PO No", "Reference / PO", "Reference No"],
+  "Payment Terms": ["Payment Terms"],
+  "Due Date": ["Due Date"],
+  "Subtotal / Taxable Value": ["Subtotal / Taxable Value", "Taxable Value"],
+  "CGST": ["CGST"],
+  "SGST": ["SGST"],
+  "IGST": ["IGST"],
+  "Grand Total": ["Grand Total", "GRAND TOTAL", "Line Total"],
+  "Invoice Status": ["Invoice Status", "INVOICE STATUS"],
+  "Description": ["Description", "Short Item Description", "Item Description"],
+  "HSN/SAC": ["HSN/SAC", "HSN / SAC", "HSN"],
+  "GST %": ["GST %", "GST%", "GST Rate"],
+  "Quantity": ["Quantity", "QTT", "Qty"],
+  "Rate": ["Rate", "RATE @ITEM", "Rate @Item"],
+  "Taxable Amount": ["Taxable Amount"],
+  "Line CGST": ["Line CGST", "CGST"],
+  "Line SGST": ["Line SGST", "SGST"],
+  "Line IGST": ["Line IGST", "IGST"],
+  "Line Total": ["Line Total", "GRAND TOTAL"]
+};
+
+const fillDownFields = [
+  "Invoice Number", "Invoice Date", "Customer Name", "Customer GSTIN", "Customer Address", "Customer State",
+  "Customer Email", "Customer Phone", "PO Number", "PO Date", "Payment Terms", "Due Date", "Invoice Status", "Notes"
+];
+
 export function importTemplateBuffer() {
   const workbook = XLSX.utils.book_new();
   const rows = [
@@ -141,12 +176,12 @@ function parseImportFile(file) {
   if (!file) throw badRequest("Import file is required");
   const original = String(file.originalname || "").toLowerCase();
   if (original.endsWith(".csv")) {
-    return { rows: parseCsv(file.buffer.toString("utf8")) };
+    return { rows: normalizeRows(parseCsv(file.buffer.toString("utf8"))) };
   }
   if (original.endsWith(".xlsx") || original.endsWith(".xls")) {
     const workbook = XLSX.read(file.buffer, { type: "buffer", cellDates: true });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    return { rows: XLSX.utils.sheet_to_json(sheet, { defval: "" }) };
+    const sheet = workbook.Sheets[workbook.SheetNames.find(name => !name.toLowerCase().includes("blank")) || workbook.SheetNames[0]];
+    return { rows: normalizeRows(XLSX.utils.sheet_to_json(sheet, { defval: "" })) };
   }
   throw badRequest("Only CSV and Excel files are supported");
 }
@@ -191,13 +226,14 @@ function normalizeItem(row, index) {
   const qty = Number(value(row, "Quantity") || 0);
   const rate = Number(String(value(row, "Rate") || "0").replace(/[,₹\s]/g, ""));
   const taxable = toCents(value(row, "Taxable Amount"));
+  const gstRate = value(row, "GST %") ? Number(value(row, "GST %")) : inferGstRate(row, taxable);
   if (!description && !hsn && !qty && !rate && !taxable) return null;
   const rateCents = rate ? toCents(rate) : qty > 0 && taxable > 0 ? Math.round(taxable / qty) : 0;
   return {
     srNo: index + 1,
     description,
     hsn,
-    gstRate: Number(value(row, "GST %") || 0),
+    gstRate,
     qty,
     rate,
     rateCents
@@ -252,7 +288,62 @@ async function findExistingCustomer(client, invoice) {
 }
 
 function value(row, key) {
-  return String(row[key] ?? row[key.toLowerCase()] ?? "").trim();
+  const candidates = aliases[key] || [key];
+  for (const candidate of candidates) {
+    if (row[candidate] !== undefined && row[candidate] !== null && String(row[candidate]).trim() !== "") {
+      return String(row[candidate]).trim();
+    }
+    const lower = candidate.toLowerCase();
+    if (row[lower] !== undefined && row[lower] !== null && String(row[lower]).trim() !== "") {
+      return String(row[lower]).trim();
+    }
+  }
+  return "";
+}
+
+function normalizeRows(rows) {
+  const normalized = [];
+  let lastHeader = {};
+  rows.forEach((raw) => {
+    const row = normalizeKeys(raw);
+    const hasInvoiceNumber = value(row, "Invoice Number");
+    const hasLine = value(row, "Description") || value(row, "HSN/SAC") || value(row, "Taxable Amount") || value(row, "Rate");
+    if (!hasInvoiceNumber && !hasLine) return;
+    if (hasInvoiceNumber) {
+      lastHeader = {};
+      fillDownFields.forEach(field => {
+        const fieldValue = value(row, field);
+        if (fieldValue) lastHeader[field] = fieldValue;
+      });
+    } else {
+      Object.entries(lastHeader).forEach(([field, fieldValue]) => {
+        if (!value(row, field)) row[field] = fieldValue;
+      });
+    }
+    normalized.push(row);
+  });
+  return normalized;
+}
+
+function normalizeKeys(row) {
+  const normalized = {};
+  Object.entries(row).forEach(([key, rawValue]) => {
+    const cleanKey = String(key).replace(/\s+/g, " ").trim();
+    normalized[cleanKey] = rawValue;
+    for (const [canonical, names] of Object.entries(aliases)) {
+      if (names.some(name => name.toLowerCase() === cleanKey.toLowerCase())) {
+        normalized[canonical] = rawValue;
+      }
+    }
+  });
+  return normalized;
+}
+
+function inferGstRate(row, taxableCents) {
+  const taxable = taxableCents || toCents(value(row, "Taxable Amount"));
+  if (!taxable) return 0;
+  const gst = toCents(value(row, "Line CGST")) + toCents(value(row, "Line SGST")) + toCents(value(row, "Line IGST"));
+  return Number(((gst / taxable) * 100).toFixed(2));
 }
 
 function normalizeStatus(status) {
