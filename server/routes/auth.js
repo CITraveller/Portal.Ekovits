@@ -1,7 +1,25 @@
 import express from "express";
 import { clearSessionCookie, loginEmployee, mapSession, readSessionFromRequest, sessionCookie } from "../services/authService.js";
+import { getSettings } from "../services/settingsService.js";
 
 export const authRouter = express.Router();
+
+authRouter.get("/branding", async (req, res, next) => {
+  try {
+    const settings = await getSettings();
+    res.json({
+      success: true,
+      data: {
+        name: settings.name,
+        email: settings.email,
+        website: settings.website,
+        logoPath: settings.logoPath
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 authRouter.get("/session", (req, res) => {
   const session = readSessionFromRequest(req);

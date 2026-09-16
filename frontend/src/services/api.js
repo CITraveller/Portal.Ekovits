@@ -20,6 +20,7 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request("/health"),
   auth: {
+    branding: () => request("/auth/branding"),
     session: () => request("/auth/session"),
     login: data => request("/auth/login", { method: "POST", body: data }),
     logout: () => request("/auth/logout", { method: "POST" })
