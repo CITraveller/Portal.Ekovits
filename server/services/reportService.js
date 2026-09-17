@@ -18,8 +18,18 @@ export async function dashboard(range = "month") {
       COALESCE(SUM(grand_total_cents) FILTER (WHERE invoice_status <> 'Cancelled'),0)::bigint AS sales_cents,
       COUNT(*) FILTER (WHERE invoice_status <> 'Cancelled')::int AS invoice_count,
       COUNT(*) FILTER (WHERE invoice_status = 'Draft')::int AS draft_count,
-      COUNT(*) FILTER (WHERE invoice_status = 'Cancelled')::int AS cancelled_count
+      COUNT(*) FILTER (WHERE invoice_status = 'Cancelled')::int AS cancelled_count,
+      COUNT(*) FILTER (WHERE invoice_status <> 'Cancelled' AND payment_status <> 'Paid')::int AS pending_payment_count,
+      COUNT(*) FILTER (WHERE invoice_status <> 'Cancelled' AND payment_status = 'Paid')::int AS paid_invoice_count,
+      COUNT(*) FILTER (WHERE invoice_status <> 'Cancelled' AND COALESCE(gst_paid,false)=false AND total_gst_cents > 0)::int AS pending_gst_count,
+      COUNT(*) FILTER (WHERE invoice_status <> 'Cancelled' AND COALESCE(gst_paid,false)=true)::int AS gst_paid_count
      FROM invoices WHERE ${activeWhere}`
+  );
+  const { rows: quotationMetrics } = await query(
+    `SELECT
+      COUNT(*) FILTER (WHERE quotation_status='Draft')::int AS draft_quotation_count,
+      COUNT(*) FILTER (WHERE quotation_status='Cancelled')::int AS cancelled_quotation_count
+     FROM quotations WHERE deleted_at IS NULL`
   );
   const { rows: paidRows } = await query(
     `SELECT COALESCE(SUM(p.amount_cents),0)::bigint AS paid_cents
@@ -41,6 +51,12 @@ export async function dashboard(range = "month") {
     invoiceCount: Number(m.invoice_count || 0),
     draftCount: Number(m.draft_count || 0),
     cancelledCount: Number(m.cancelled_count || 0),
+    pendingPaymentCount: Number(m.pending_payment_count || 0),
+    paidInvoiceCount: Number(m.paid_invoice_count || 0),
+    pendingGstCount: Number(m.pending_gst_count || 0),
+    gstPaidCount: Number(m.gst_paid_count || 0),
+    draftQuotationCount: Number(quotationMetrics[0]?.draft_quotation_count || 0),
+    cancelledQuotationCount: Number(quotationMetrics[0]?.cancelled_quotation_count || 0),
     recentInvoices: recent
   };
 }

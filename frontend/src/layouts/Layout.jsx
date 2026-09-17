@@ -7,7 +7,6 @@ const tabs = [
   ["quotations", "Quotations"],
   ["customers", "Customers"],
   ["hsn", "HSN/SAC"],
-  ["payments", "Payments"],
   ["reports", "Reports"],
   ["settings", "Settings"],
   ["backup", "Backup"]

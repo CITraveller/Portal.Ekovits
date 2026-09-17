@@ -30,7 +30,7 @@ export async function applySchemaAndSeed() {
 }
 
 export async function verifySchema() {
-  const required = ["company_settings", "customers", "hsn_codes", "invoices", "invoice_items", "payments", "audit_logs", "invoice_number_sequences", "employees", "quotations", "quotation_items", "quotation_number_sequences"];
+  const required = ["company_settings", "customers", "customer_contacts", "hsn_codes", "invoices", "invoice_items", "payments", "audit_logs", "invoice_number_sequences", "employees", "quotations", "quotation_items", "quotation_number_sequences"];
   const { rows } = await pool.query(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name = ANY($1)",
     [required]

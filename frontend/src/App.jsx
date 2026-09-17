@@ -7,7 +7,6 @@ import Invoices from "./pages/Invoices.jsx";
 import Quotations from "./pages/Quotations.jsx";
 import Customers from "./pages/Customers.jsx";
 import HsnSac from "./pages/HsnSac.jsx";
-import Payments from "./pages/Payments.jsx";
 import Reports from "./pages/Reports.jsx";
 import Settings from "./pages/Settings.jsx";
 import BackupRestore from "./pages/BackupRestore.jsx";
@@ -20,6 +19,8 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [editingQuotation, setEditingQuotation] = useState(null);
+  const [invoiceFilter, setInvoiceFilter] = useState("all");
+  const [quotationFilter, setQuotationFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -88,6 +89,19 @@ export default function App() {
     clearEditingInvoice() {
       setEditingInvoice(null);
     },
+    openInvoiceFilter(filter) {
+      setInvoiceFilter(filter);
+      setActiveTab("invoices");
+    },
+    newQuotation() {
+      setEditingQuotation({ duplicateSourceId: "new" });
+      setQuotationFilter("all");
+      setActiveTab("quotations");
+    },
+    openQuotationFilter(filter) {
+      setQuotationFilter(filter);
+      setActiveTab("quotations");
+    },
     editQuotation(quotation) {
       setEditingQuotation(quotation);
       setActiveTab("quotations");
@@ -115,11 +129,10 @@ export default function App() {
       {error && <div className="notice err-text">API error: {error}</div>}
       {!loading && !error && activeTab === "dashboard" && <Dashboard ctx={ctx} refreshKey={dataVersion} />}
       {!loading && !error && activeTab === "invoice" && <InvoiceForm ctx={ctx} editingInvoice={editingInvoice} />}
-      {!loading && !error && activeTab === "invoices" && <Invoices ctx={ctx} />}
-      {!loading && !error && activeTab === "quotations" && <Quotations ctx={ctx} editingQuotation={editingQuotation} />}
+      {!loading && !error && activeTab === "invoices" && <Invoices ctx={ctx} initialFilter={invoiceFilter} />}
+      {!loading && !error && activeTab === "quotations" && <Quotations ctx={ctx} editingQuotation={editingQuotation} initialFilter={quotationFilter} />}
       {!loading && !error && activeTab === "customers" && <Customers ctx={ctx} />}
       {!loading && !error && activeTab === "hsn" && <HsnSac ctx={ctx} />}
-      {!loading && !error && activeTab === "payments" && <Payments ctx={ctx} />}
       {!loading && !error && activeTab === "reports" && <Reports ctx={ctx} />}
       {!loading && !error && activeTab === "settings" && <Settings ctx={ctx} />}
       {!loading && !error && activeTab === "backup" && <BackupRestore ctx={ctx} />}

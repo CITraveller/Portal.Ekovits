@@ -151,6 +151,29 @@ export async function cancelInvoice(id, reason) {
   return getInvoice(id);
 }
 
+export async function updateInvoicePaymentStatus(id, paymentStatus, user = null) {
+  if (!["Paid", "Unpaid", "Partially Paid"].includes(paymentStatus)) throw badRequest("Invalid payment status");
+  const old = await getInvoice(id);
+  if (old.invoiceStatus === "Cancelled") throw badRequest("Cancelled invoices cannot be updated");
+  const { rows } = await query(
+    "UPDATE invoices SET payment_status=$2, updated_at=now(), updated_by=$3 WHERE id=$1 AND deleted_at IS NULL RETURNING *",
+    [id, paymentStatus, user?.sub || user?.id || null]
+  );
+  await audit("Invoice Payment Status Updated", "invoice", id, `Invoice ${old.invoiceNo} marked ${paymentStatus}`, old, rows[0], "", null, old.invoiceNo);
+  return getInvoice(id);
+}
+
+export async function updateInvoiceGstPaidStatus(id, gstPaid, user = null) {
+  const old = await getInvoice(id);
+  if (old.invoiceStatus === "Cancelled") throw badRequest("Cancelled invoices cannot be updated");
+  const { rows } = await query(
+    "UPDATE invoices SET gst_paid=$2, updated_at=now(), updated_by=$3 WHERE id=$1 AND deleted_at IS NULL RETURNING *",
+    [id, Boolean(gstPaid), user?.sub || user?.id || null]
+  );
+  await audit("Invoice GST Status Updated", "invoice", id, `Invoice ${old.invoiceNo} GST marked ${gstPaid ? "paid" : "pending"}`, old, rows[0], "", null, old.invoiceNo);
+  return getInvoice(id);
+}
+
 export async function deleteInvoice(id, reason = "") {
   const old = await getInvoice(id);
   if (!String(reason || "").trim()) throw badRequest("Deletion reason is required");
@@ -282,6 +305,7 @@ export function mapInvoice(row) {
     balanceCents: Math.max(0, Number(row.grand_total_cents) - Number(row.amount_paid_cents || 0)),
     invoiceStatus: row.invoice_status,
     paymentStatus: row.payment_status,
+    gstPaid: Boolean(row.gst_paid),
     revision: row.revision,
     cancellationReason: row.cancellation_reason || "",
     imported: Boolean(row.imported),

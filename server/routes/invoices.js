@@ -3,7 +3,7 @@ import fs from "fs";
 import multer from "multer";
 import path from "path";
 import { env } from "../config/env.js";
-import { attachOriginalDocument, cancelInvoice, createInvoice, deleteInvoice, duplicateInvoice, getInvoice, getOriginalDocument, listInvoices, previewNextInvoiceNumber, updateInvoice } from "../services/invoiceService.js";
+import { attachOriginalDocument, cancelInvoice, createInvoice, deleteInvoice, duplicateInvoice, getInvoice, getOriginalDocument, listInvoices, previewNextInvoiceNumber, updateInvoice, updateInvoiceGstPaidStatus, updateInvoicePaymentStatus } from "../services/invoiceService.js";
 import { commitInvoiceImport, importTemplateBuffer, previewInvoiceImport } from "../services/invoiceImportService.js";
 
 export const invoicesRouter = express.Router();
@@ -62,6 +62,12 @@ invoicesRouter.post("/:id/duplicate", async (req, res, next) => {
 });
 invoicesRouter.post("/:id/cancel", async (req, res, next) => {
   try { res.json({ success: true, data: await cancelInvoice(req.params.id, req.body.reason) }); } catch (error) { next(error); }
+});
+invoicesRouter.post("/:id/payment-status", async (req, res, next) => {
+  try { res.json({ success: true, data: await updateInvoicePaymentStatus(req.params.id, req.body.paymentStatus, req.user) }); } catch (error) { next(error); }
+});
+invoicesRouter.post("/:id/gst-status", async (req, res, next) => {
+  try { res.json({ success: true, data: await updateInvoiceGstPaidStatus(req.params.id, req.body.gstPaid, req.user) }); } catch (error) { next(error); }
 });
 invoicesRouter.post("/:id/original-document", upload.single("document"), async (req, res, next) => {
   try { res.json({ success: true, data: await attachOriginalDocument(req.params.id, req.file, req.user) }); } catch (error) { next(error); }

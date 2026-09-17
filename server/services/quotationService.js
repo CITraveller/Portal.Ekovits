@@ -9,6 +9,7 @@ import { audit } from "./auditService.js";
 const statuses = new Set(["Draft", "Sent", "Accepted", "Rejected", "Expired", "Cancelled"]);
 
 export async function listQuotations(search = "", filters = {}) {
+  await expireOldQuotations();
   const params = [];
   const clauses = ["q.deleted_at IS NULL"];
   if (search) {
@@ -24,6 +25,7 @@ export async function listQuotations(search = "", filters = {}) {
 }
 
 export async function getQuotation(id) {
+  await expireOldQuotations();
   const { rows } = await query(baseQuotationSelect("WHERE q.id=$1 AND q.deleted_at IS NULL"), [id]);
   if (!rows[0]) throw notFound("Quotation not found");
   return mapQuotation(rows[0]);
@@ -70,6 +72,8 @@ export async function updateQuotation(id, body, user = null) {
   const old = await getQuotation(id);
   if (old.quotationStatus === "Cancelled") throw badRequest("Cancelled quotations cannot be edited");
   validateQuotationInput({ ...old, ...body, items: body.items || old.items });
+  const nextStatus = body.quotationStatus || old.quotationStatus;
+  validateStatusTransition(old.quotationStatus, nextStatus);
   return withTransaction(async (client) => {
     const settings = await getSettings(client);
     const next = { ...old, ...body };
@@ -85,7 +89,7 @@ export async function updateQuotation(id, body, user = null) {
         next.subject || "", next.customerId || null, next.clientName, next.clientAddress, next.clientContact || "",
         next.clientEmail || "", String(next.clientGstin || "").toUpperCase(), next.clientState || "", next.clientStateCode || "",
         next.notes || "", next.terms || "", totals.taxableCents, totals.cgstCents, totals.sgstCents, totals.igstCents,
-        totals.totalGstCents, totals.roundOffCents, totals.grandTotalCents, next.quotationStatus || old.quotationStatus,
+        totals.totalGstCents, totals.roundOffCents, totals.grandTotalCents, nextStatus,
         user?.sub || user?.id || null]
     );
     await client.query("DELETE FROM quotation_items WHERE quotation_id=$1", [id]);
@@ -159,6 +163,29 @@ function validateQuotationInput(body) {
     if (Number(item.qty) <= 0) throw badRequest("Quantity must be greater than zero");
     if (toCents(item.rate) < 0) throw badRequest("Rate cannot be negative");
   });
+}
+
+async function expireOldQuotations() {
+  await query(
+    `UPDATE quotations SET quotation_status='Expired', updated_at=now()
+     WHERE deleted_at IS NULL
+       AND quotation_status IN ('Draft','Sent')
+       AND valid_until IS NOT NULL
+       AND valid_until < CURRENT_DATE`
+  );
+}
+
+function validateStatusTransition(from, to) {
+  if (from === to) return;
+  const allowed = {
+    Draft: ["Sent", "Cancelled"],
+    Sent: ["Accepted", "Rejected", "Expired", "Cancelled"],
+    Rejected: ["Sent", "Cancelled"],
+    Expired: ["Sent", "Cancelled"],
+    Accepted: [],
+    Cancelled: []
+  };
+  if (!allowed[from]?.includes(to)) throw badRequest(`Invalid quotation status transition from ${from} to ${to}`);
 }
 
 function baseQuotationSelect(where = "") {

@@ -45,6 +45,8 @@ export const api = {
     remove: (id, reason) => request(`/invoices/${id}`, { method: "DELETE", body: { reason } }),
     duplicate: id => request(`/invoices/${id}/duplicate`, { method: "POST" }),
     cancel: (id, reason) => request(`/invoices/${id}/cancel`, { method: "POST", body: { reason } }),
+    paymentStatus: (id, paymentStatus) => request(`/invoices/${id}/payment-status`, { method: "POST", body: { paymentStatus } }),
+    gstStatus: (id, gstPaid) => request(`/invoices/${id}/gst-status`, { method: "POST", body: { gstPaid } }),
     importTemplateUrl: `${API_URL}/invoices/import/template`,
     previewImport: form => request("/invoices/import/preview", { method: "POST", body: form }),
     commitImport: form => request("/invoices/import/commit", { method: "POST", body: form }),

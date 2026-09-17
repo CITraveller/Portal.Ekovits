@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api.js";
 import { inr } from "../utils/money.js";
 import { Modal } from "../components/Modal.jsx";
 import { InvoicePreview, printInvoice } from "../components/InvoicePreview.jsx";
 
-export default function Invoices({ ctx }) {
+export default function Invoices({ ctx, initialFilter = "all" }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [preview, setPreview] = useState(null);
@@ -12,14 +12,19 @@ export default function Invoices({ ctx }) {
   const [importFile, setImportFile] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [importing, setImporting] = useState(false);
+  useEffect(() => { setFilter(initialFilter || "all"); }, [initialFilter]);
   const rows = useMemo(() => ctx.invoices
     .filter(i => [i.invoiceNo, i.clientName, i.clientGstin, i.paymentStatus, i.invoiceStatus, i.source, i.totals.grandTotalCents / 100].join(" ").toLowerCase().includes(search.toLowerCase()))
     .filter(i => filter === "all"
       || (filter === "system" && !i.imported)
       || (filter === "imported" && i.imported)
       || (filter === "cancelled" && i.invoiceStatus === "Cancelled")
+      || (filter === "draft" && i.invoiceStatus === "Draft")
       || (filter === "paid" && i.paymentStatus === "Paid")
-      || (filter === "unpaid" && i.paymentStatus === "Unpaid")), [ctx.invoices, search, filter]);
+      || (filter === "unpaid" && i.paymentStatus === "Unpaid")
+      || (filter === "pendingPayment" && i.invoiceStatus !== "Cancelled" && i.paymentStatus !== "Paid")
+      || (filter === "pendingGst" && i.invoiceStatus !== "Cancelled" && !i.gstPaid && (i.totals?.totalGstCents || 0) > 0)
+      || (filter === "gstPaid" && i.gstPaid)), [ctx.invoices, search, filter]);
   const uploadOriginal = async (invoice, file) => {
     if (!file) return;
     const form = new FormData();
@@ -63,31 +68,51 @@ export default function Invoices({ ctx }) {
       setImporting(false);
     }
   };
+  const setPaymentStatus = async (invoice, paymentStatus) => {
+    if (!confirm(`Mark ${invoice.invoiceNo} as ${paymentStatus}?`)) return;
+    await api.invoices.paymentStatus(invoice.id, paymentStatus);
+    await ctx.reload();
+  };
+  const setGstStatus = async (invoice, gstPaid) => {
+    if (!confirm(`Mark GST for ${invoice.invoiceNo} as ${gstPaid ? "paid" : "pending"}?`)) return;
+    await api.invoices.gstStatus(invoice.id, gstPaid);
+    await ctx.reload();
+  };
   return <section className="view active">
     <div className="section-head">
       <div><h1>Invoice History</h1><p>View, correct, print, duplicate, import historical invoices, or cancel invoices.</p></div>
       <div className="actions"><input className="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, GSTIN, amount, status" /><button className="primary" onClick={() => setImportOpen(true)}>Import Historical</button></div>
     </div>
     <div className="filters">
-      {["all", "system", "imported", "cancelled", "paid", "unpaid"].map(id => <button key={id} className={filter === id ? "active" : ""} onClick={() => setFilter(id)}>{labelFilter(id)}</button>)}
+      {["all", "pendingPayment", "paid", "unpaid", "pendingGst", "gstPaid", "draft", "cancelled", "system", "imported"].map(id => <button key={id} className={filter === id ? "active" : ""} onClick={() => setFilter(id)}>{labelFilter(id)}</button>)}
     </div>
-    <div className="record-list">
-      {rows.map(invoice => <div className={`record ${invoice.invoiceStatus.toLowerCase()}`} key={invoice.id}>
-        <div><div className="record-title">{invoice.invoiceNo} {invoice.imported && <span className="badge imported">Imported</span>}</div><small>{formatDate(invoice.invoiceDate)} · Revision {invoice.revision}</small></div>
-        <div>{invoice.clientName}<small>{invoice.clientGstin || "No GSTIN"}</small></div>
-        <div><strong>{inr(invoice.totals.grandTotalCents)}</strong><small>{invoice.paymentStatus}</small></div>
-        <div className="record-actions">
-          <button className="small secondary" onClick={() => setPreview(invoice)}>View</button>
-          <button className="small secondary" onClick={() => ctx.editInvoice(invoice)}>Edit</button>
-          <button className="small secondary" onClick={() => ctx.duplicateInvoice(invoice)}>Duplicate</button>
-          <button className="small secondary" onClick={() => setPreview(invoice)}>Print</button>
-          {invoice.originalDocumentPath && <a className="button-link small secondary" href={api.invoices.originalDocumentUrl(invoice.id)}>Original PDF</a>}
-          {invoice.imported && <label className="file-action small secondary">Attach PDF<input type="file" accept="application/pdf" onChange={e => uploadOriginal(invoice, e.target.files?.[0])} /></label>}
-          {invoice.invoiceStatus !== "Cancelled" && <button className="small danger" onClick={async () => { const reason = prompt("Cancellation reason is required:"); if (reason) { await api.invoices.cancel(invoice.id, reason); await ctx.reload(); } }}>Cancel</button>}
-          <button className="small danger" onClick={async () => { const reason = prompt("Deletion reason is required. Issued/imported invoices will be hidden, not destroyed:"); if (reason) { await api.invoices.remove(invoice.id, reason); await ctx.reload(); } }}>Delete</button>
-        </div>
-      </div>)}
-      {!rows.length && <div className="panel">No invoices.</div>}
+    <div className="table-wrap panel">
+      <table className="data-table"><thead><tr><th>Invoice Number</th><th>Invoice Date</th><th>Customer</th><th>Grand Total</th><th>Payment Status</th><th>Invoice Status</th><th>GST</th><th>Actions</th></tr></thead><tbody>
+        {rows.map(invoice => <tr key={invoice.id}>
+          <td><strong>{invoice.invoiceNo}</strong>{invoice.imported && <span className="badge imported">Imported</span>}</td>
+          <td>{formatDate(invoice.invoiceDate)}</td>
+          <td>{invoice.clientName}<small>{invoice.clientGstin || "No GSTIN"}</small></td>
+          <td className="num">{inr(invoice.totals.grandTotalCents)}</td>
+          <td><StatusBadge value={invoice.paymentStatus} /></td>
+          <td><StatusBadge value={invoice.invoiceStatus} /></td>
+          <td><StatusBadge value={invoice.gstPaid ? "GST Paid" : "GST Pending"} /></td>
+          <td><div className="record-actions">
+            <button className="small secondary" onClick={() => setPreview(invoice)}>View</button>
+            <button className="small secondary" onClick={() => ctx.editInvoice(invoice)}>Edit</button>
+            <button className="small secondary" onClick={() => ctx.duplicateInvoice(invoice)}>Duplicate</button>
+            <button className="small secondary" onClick={() => setPreview(invoice)}>Print</button>
+            <button className="small secondary" onClick={() => setPaymentStatus(invoice, "Paid")}>Mark Paid</button>
+            <button className="small secondary" onClick={() => setPaymentStatus(invoice, "Unpaid")}>Mark Unpaid</button>
+            <button className="small secondary" onClick={() => setPaymentStatus(invoice, "Partially Paid")}>Partially Paid</button>
+            <button className="small secondary" onClick={() => setGstStatus(invoice, !invoice.gstPaid)}>{invoice.gstPaid ? "GST Pending" : "GST Paid"}</button>
+            {invoice.originalDocumentPath && <a className="button-link small secondary" href={api.invoices.originalDocumentUrl(invoice.id)}>Original PDF</a>}
+            {invoice.imported && <label className="file-action small secondary">Attach PDF<input type="file" accept="application/pdf" onChange={e => uploadOriginal(invoice, e.target.files?.[0])} /></label>}
+            {invoice.invoiceStatus !== "Cancelled" && <button className="small danger" onClick={async () => { const reason = prompt("Cancellation reason is required:"); if (reason) { await api.invoices.cancel(invoice.id, reason); await ctx.reload(); } }}>Cancel</button>}
+            <button className="small danger" onClick={async () => { const reason = prompt("Deletion reason is required. Issued/imported invoices will be hidden, not destroyed:"); if (reason) { await api.invoices.remove(invoice.id, reason); await ctx.reload(); } }}>Delete</button>
+          </div></td>
+        </tr>)}
+        {!rows.length && <tr><td colSpan="8">No invoices.</td></tr>}
+      </tbody></table>
     </div>
     <Modal onClose={() => setPreview(null)}>{preview && <><div className="preview-actions"><button className="primary" onClick={() => printInvoice(preview, ctx.settings)}>Print / Save PDF</button></div><InvoicePreview invoice={preview} settings={ctx.settings} /></>}</Modal>
     <Modal onClose={() => setImportOpen(false)}>{importOpen && <div className="stack import-panel">
@@ -115,7 +140,12 @@ function ImportMessages({ title, items }) {
 }
 
 function labelFilter(id) {
-  return ({ all: "All", system: "Normal/System Generated", imported: "Imported/Historical", cancelled: "Cancelled", paid: "Paid", unpaid: "Unpaid" })[id] || id;
+  return ({ all: "All", pendingPayment: "Pending Payment", system: "Normal/System Generated", imported: "Imported/Historical", cancelled: "Cancelled", draft: "Draft", paid: "Paid", unpaid: "Unpaid", pendingGst: "Pending GST", gstPaid: "GST Paid" })[id] || id;
+}
+
+function StatusBadge({ value }) {
+  const key = String(value || "").toLowerCase().replace(/\s+/g, "-");
+  return <span className={`badge status-${key}`}>{value}</span>;
 }
 
 function formatDate(value) {

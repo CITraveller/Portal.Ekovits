@@ -55,6 +55,11 @@ CREATE TABLE IF NOT EXISTS customers (
   state_code TEXT NOT NULL DEFAULT '27',
   pan TEXT DEFAULT '',
   customer_type TEXT DEFAULT 'Business',
+  legal_name TEXT DEFAULT '',
+  designation TEXT DEFAULT '',
+  alternate_phone TEXT DEFAULT '',
+  country TEXT DEFAULT 'India',
+  pin_code TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -108,6 +113,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   grand_total_cents BIGINT NOT NULL DEFAULT 0,
   invoice_status TEXT NOT NULL CHECK (invoice_status IN ('Draft', 'Final', 'Cancelled')),
   payment_status TEXT NOT NULL CHECK (payment_status IN ('Unpaid', 'Partially Paid', 'Paid')) DEFAULT 'Unpaid',
+  gst_paid BOOLEAN NOT NULL DEFAULT false,
   source TEXT NOT NULL DEFAULT 'system' CHECK (source IN ('system', 'imported')),
   imported BOOLEAN NOT NULL DEFAULT false,
   imported_at TIMESTAMPTZ,
@@ -127,11 +133,29 @@ CREATE TABLE IF NOT EXISTS invoices (
   updated_by TEXT REFERENCES employees(id) ON DELETE SET NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_customers_account_type ON customers(customer_type);
+CREATE INDEX IF NOT EXISTS idx_customers_active ON customers(active);
+
+CREATE TABLE IF NOT EXISTS customer_contacts (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  designation TEXT DEFAULT '',
+  email TEXT DEFAULT '',
+  phone TEXT DEFAULT '',
+  is_primary BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_customer_contacts_customer_id ON customer_contacts(customer_id);
+
 CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices(invoice_date);
 CREATE INDEX IF NOT EXISTS idx_invoices_search ON invoices(invoice_no, client_name, client_gstin, payment_status, invoice_status);
 CREATE INDEX IF NOT EXISTS idx_invoices_source ON invoices(source, imported);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(invoice_status, payment_status);
+CREATE INDEX IF NOT EXISTS idx_invoices_gst_paid ON invoices(gst_paid);
 
 CREATE TABLE IF NOT EXISTS invoice_items (
   id TEXT PRIMARY KEY,

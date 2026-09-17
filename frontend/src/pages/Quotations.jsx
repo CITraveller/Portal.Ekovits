@@ -9,9 +9,10 @@ import { InvoiceItems } from "./InvoiceForm.jsx";
 const emptyItem = () => ({ description: "", hsn: "", gstRate: 18, qty: 1, rate: 0 });
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function Quotations({ ctx, editingQuotation }) {
+export default function Quotations({ ctx, editingQuotation, initialFilter = "all" }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(makeBlank(ctx.settings));
   const [preview, setPreview] = useState(null);
   const [numberLoading, setNumberLoading] = useState(false);
@@ -24,7 +25,8 @@ export default function Quotations({ ctx, editingQuotation }) {
   useEffect(() => {
     if (editingQuotation) {
       reservedRef.current = false;
-      setForm(editingQuotation.duplicateSourceId ? { ...fromQuotation(editingQuotation), quotationNo: "", quotationStatus: "Draft" } : fromQuotation(editingQuotation));
+      setShowForm(true);
+      setForm(editingQuotation.duplicateSourceId === "new" ? makeBlank(ctx.settings) : editingQuotation.duplicateSourceId ? { ...fromQuotation(editingQuotation), quotationNo: "", quotationStatus: "Draft" } : fromQuotation(editingQuotation));
       if (editingQuotation.duplicateSourceId) reserveNumber();
       return;
     }
@@ -34,6 +36,7 @@ export default function Quotations({ ctx, editingQuotation }) {
       reserveNumber();
     }
   }, [editingQuotation, ctx.settings]);
+  useEffect(() => { setFilter(initialFilter || "all"); }, [initialFilter]);
 
   const gstType = resolvedGstType(ctx.settings.state, form.clientState, form.gstType);
   const totals = useMemo(() => calculateTotals(form.items, gstType), [form.items, gstType]);
@@ -65,6 +68,7 @@ export default function Quotations({ ctx, editingQuotation }) {
       await ctx.reload();
       reservedRef.current = false;
       setForm(makeBlank(ctx.settings));
+      setShowForm(false);
     } catch (err) {
       ctx.notify(err.message, "err");
     }
@@ -72,9 +76,9 @@ export default function Quotations({ ctx, editingQuotation }) {
   const openPreview = () => setPreview(buildPreviewQuotation(form, ctx.settings, gstType, totals));
 
   return <section className="view active">
-    <div className="section-head"><div><h1>{isEditing ? `Edit Quotation ${editingQuotation.quotationNo}` : editingQuotation?.duplicateSourceId ? "Duplicate Quotation" : "Quotations"}</h1><p>Create, view, print, duplicate, cancel, and manage EKOVITS quotations.</p></div><input className="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search quotation, client, GSTIN, status" /></div>
+    <div className="section-head"><div><h1>{showForm ? (isEditing ? `Edit Quotation ${editingQuotation.quotationNo}` : editingQuotation?.duplicateSourceId ? "Create New Quotation" : "Create New Quotation") : "Quotations"}</h1><p>Create, view, print, duplicate, cancel, and manage EKOVITS quotations.</p></div><div className="actions"><input className="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search quotation, client, GSTIN, status" /><button className="primary" onClick={() => { ctx.clearEditingQuotation(); setForm(makeBlank(ctx.settings)); setShowForm(true); reserveNumber(); }}>Generate New Quote</button></div></div>
     <div className="filters">{["all", "Draft", "Sent", "Accepted", "Rejected", "Expired", "Cancelled"].map(id => <button key={id} className={filter === id ? "active" : ""} onClick={() => setFilter(id)}>{id}</button>)}</div>
-    <form className="stack" onSubmit={e => { e.preventDefault(); submit("Sent"); }}>
+    {showForm && <form className="stack" onSubmit={e => { e.preventDefault(); submit("Sent"); }}>
       <div className="panel"><h2>Quotation Details</h2><div className="grid four">
         <label>Quotation Number<input readOnly value={form.quotationNo || (numberLoading ? "Generating..." : "")} /></label>
         <label>Quotation Date<input type="date" required value={form.quotationDate} onChange={e => set("quotationDate", e.target.value)} /></label>
@@ -97,16 +101,21 @@ export default function Quotations({ ctx, editingQuotation }) {
       <InvoiceItems items={form.items} hsn={ctx.hsn} updateItem={updateItem} addItem={() => set("items", [...form.items, emptyItem()])} removeItem={index => set("items", form.items.filter((_, i) => i !== index))} />
       <div className="panel split"><label>Notes<textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></label><label>Terms & Conditions<textarea value={form.terms} onChange={e => set("terms", e.target.value)} /></label></div>
       <div className="panel"><div className="totals"><div><span>Taxable Value</span><strong>{inr(totals.taxableCents)}</strong></div><div><span>CGST</span><strong>{inr(totals.cgstCents)}</strong></div><div><span>SGST</span><strong>{inr(totals.sgstCents)}</strong></div><div><span>IGST</span><strong>{inr(totals.igstCents)}</strong></div><div className="grand"><span>Grand Total</span><strong>{inr(totals.grandTotalCents)}</strong></div><p>Indian Rupees {amountInWords(totals.grandTotalCents)}</p></div></div>
-      <div className="form-actions"><button type="button" className="secondary" onClick={openPreview} disabled={!form.quotationNo}>Preview</button><button type="button" className="secondary" onClick={() => submit("Draft")}>Save Draft</button><button className="primary">Save Sent Quotation</button></div>
-    </form>
-    <div className="record-list">
-      {rows.map(quotation => <div className={`record ${quotation.quotationStatus.toLowerCase()}`} key={quotation.id}>
-        <div><div className="record-title">{quotation.quotationNo}</div><small>{formatDate(quotation.quotationDate)} · Revision {quotation.revision}</small></div>
-        <div>{quotation.clientName}<small>{quotation.clientGstin || "No GSTIN"}</small></div>
-        <div><strong>{inr(quotation.totals.grandTotalCents)}</strong><small>{quotation.quotationStatus}</small></div>
-        <div className="record-actions"><button className="small secondary" onClick={() => setPreview(quotation)}>View</button><button className="small secondary" onClick={() => ctx.editQuotation(quotation)}>Edit</button><button className="small secondary" onClick={() => ctx.duplicateQuotation(quotation)}>Duplicate</button><button className="small secondary" onClick={() => setPreview(quotation)}>Print</button>{quotation.quotationStatus !== "Cancelled" && <button className="small danger" onClick={async () => { const reason = prompt("Cancellation reason is required:"); if (reason) { await api.quotations.cancel(quotation.id, reason); await ctx.reload(); } }}>Cancel</button>}<button className="small danger" onClick={async () => { const reason = prompt("Deletion reason is required:"); if (reason) { await api.quotations.remove(quotation.id, reason); await ctx.reload(); } }}>Delete</button></div>
-      </div>)}
-      {!rows.length && <div className="panel">No quotations.</div>}
+      <div className="form-actions"><button type="button" className="secondary" onClick={() => { setShowForm(false); ctx.clearEditingQuotation(); }}>Close</button><button type="button" className="secondary" onClick={openPreview} disabled={!form.quotationNo}>Preview</button><button type="button" className="secondary" onClick={() => submit("Draft")}>Save Draft</button><button className="primary">Save Sent Quotation</button></div>
+    </form>}
+    <div className="table-wrap panel">
+      <table className="data-table"><thead><tr><th>Quote Number</th><th>Quotation Date</th><th>Valid Till</th><th>Customer</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      {rows.map(quotation => <tr key={quotation.id}>
+        <td><strong>{quotation.quotationNo}</strong></td>
+        <td>{formatDate(quotation.quotationDate)}</td>
+        <td>{formatDate(quotation.validUntil) || "-"}</td>
+        <td>{quotation.clientName}<small>{quotation.clientGstin || "No GSTIN"}</small></td>
+        <td className="num">{inr(quotation.totals.grandTotalCents)}</td>
+        <td><span className={`badge status-${quotation.quotationStatus.toLowerCase()}`}>{quotation.quotationStatus}</span></td>
+        <td><div className="record-actions"><button className="small secondary" onClick={() => setPreview(quotation)}>View</button><button className="small secondary" onClick={() => ctx.editQuotation(quotation)}>Edit</button><button className="small secondary" onClick={() => ctx.duplicateQuotation(quotation)}>Duplicate</button><button className="small secondary" onClick={() => setPreview(quotation)}>Print</button>{quotation.quotationStatus !== "Cancelled" && <button className="small danger" onClick={async () => { const reason = prompt("Cancellation reason is required:"); if (reason && confirm(`Cancel ${quotation.quotationNo}?`)) { await api.quotations.cancel(quotation.id, reason); await ctx.reload(); } }}>Cancel</button>}<button className="small danger" onClick={async () => { const reason = prompt("Deletion reason is required:"); if (reason && confirm(`Delete ${quotation.quotationNo}?`)) { await api.quotations.remove(quotation.id, reason); await ctx.reload(); } }}>Delete</button></div></td>
+      </tr>)}
+      {!rows.length && <tr><td colSpan="7">No quotations.</td></tr>}
+      </tbody></table>
     </div>
     <Modal onClose={() => setPreview(null)}>{preview && <><div className="preview-actions"><button className="primary" onClick={printQuotation}>Print / Save PDF</button></div><QuotationPreview quotation={preview} settings={ctx.settings} /></>}</Modal>
   </section>;
