@@ -1,5 +1,5 @@
 import { API_ORIGIN } from "../services/api.js";
-import { BarChart3, Building2, DatabaseBackup, FileText, Hash, LogOut, ReceiptText, ScrollText, Settings, UserRound } from "lucide-react";
+import { BarChart3, Bell, Building2, DatabaseBackup, FileText, Hash, LogOut, ReceiptText, ScrollText, Settings, UserRound } from "lucide-react";
 
 const tabs = [
   ["dashboard", "Dashboard", BarChart3],
@@ -22,7 +22,7 @@ export function Layout({ activeTab, setActiveTab, settings, user, onLogout, chil
             <span id="brandFallback">EK</span>
             {settings?.logoPath && <img id="brandLogo" src={`${API_ORIGIN}${settings.logoPath}`} alt="Company logo" />}
           </span>
-          <div><strong>EKOVITS</strong><span>CRM & GST Portal</span></div>
+          <div><strong>EKOVITS</strong><span>INVOICE PORTAL</span></div>
         </div>
         <nav className="tabs" aria-label="Primary">
           {tabs.map(([id, label, Icon]) => (
@@ -41,6 +41,13 @@ export function Layout({ activeTab, setActiveTab, settings, user, onLogout, chil
       <div className="content-shell">
         <header className="topbar">
           <div><h1>{pageTitle(activeTab)}</h1><p>{pageSubtitle(activeTab)}</p></div>
+          <div className="topbar-actions">
+            {settings?.gstin && <span className="gstin-pill">{settings.gstin}</span>}
+            <button className="icon-button" type="button" aria-label="Notifications">
+              <Bell size={16} />
+              <span aria-hidden="true"></span>
+            </button>
+          </div>
         </header>
         <main>{children}</main>
       </div>
