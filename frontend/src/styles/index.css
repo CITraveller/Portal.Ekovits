@@ -147,7 +147,7 @@ input,select,textarea{border-color:#d8e1ee;border-radius:12px;background:#fff;pa
   --muted:#626f86;
   --line:#dfe1e6;
   --bg:#f7f8f9;
-  --brand2:#0c66e4;
+  --brand2:#111827;
   --soft-shadow:0 1px 2px #091e4224,0 0 1px #091e424f;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,"Helvetica Neue",Arial,sans-serif;font-size:14px;line-height:1.428;color:var(--ink);letter-spacing:0}
@@ -155,15 +155,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubunt
 h2{font-size:16px;font-weight:700;color:var(--ink)}
 .section-head p,.content-shell .topbar p,.hint{color:var(--muted);font-size:13px}
 button,.button-link,.tabs button,.filters button{border-radius:3px;font-weight:600;font-size:14px;min-height:32px;box-shadow:none}
-.primary,.button-link.primary{background:#0c66e4;border-color:#0c66e4;color:#fff}
-.primary:hover,.button-link.primary:hover{background:#0055cc;border-color:#0055cc}
+.primary,.button-link.primary{background:#111827;border-color:#111827;color:#fff}
+.primary:hover,.button-link.primary:hover{background:#000;border-color:#000}
 .secondary,.button-link.secondary,.filters button{background:#f1f2f4;border-color:#f1f2f4;color:#44546f}
 .secondary:hover,.button-link.secondary:hover,.filters button:hover{background:#dcdfe4;border-color:#dcdfe4;color:#172b4d}
 .danger{background:#fff;border-color:#ffd5d2;color:#ae2e24}
 .danger:hover{background:#ffedeb;border-color:#ffbdad}
 .small{border-radius:3px;min-height:28px;padding:4px 9px;font-size:12px}
-.tabs button{border-radius:3px;font-size:14px}.tabs button.active{background:#0c66e4;box-shadow:none}
-.filters button{border-radius:3px;padding:6px 10px}.filters button.active{background:#0c66e4;border-color:#0c66e4;color:#fff}
+.tabs button{border-radius:3px;font-size:14px}.tabs button.active{background:#111827;box-shadow:none}
+.filters button{border-radius:3px;padding:6px 10px}.filters button.active{background:#111827;border-color:#111827;color:#fff}
 input,select,textarea{border-color:#dfe1e6;border-radius:3px;color:#172b4d;font-size:14px;min-height:34px}
 input:focus,select:focus,textarea:focus{outline:2px solid #388bff;border-color:#388bff}
 .search{border-radius:3px}
