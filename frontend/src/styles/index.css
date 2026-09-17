@@ -103,3 +103,40 @@ textarea{min-height:72px;resize:vertical}input:focus,select:focus,textarea:focus
   .tax-invoice{page-break-after:auto}
 }
 @media(max-width:900px){.item-table{overflow:hidden}#itemsBody:empty:before{display:block;padding:16px;color:var(--muted);content:"Click Add Line to add invoice details."}}
+
+/* Soft CRM theme */
+:root{
+  --ink:#081f45;
+  --muted:#7a879b;
+  --line:#dbe3ee;
+  --bg:#f5f7fb;
+  --card:#fff;
+  --brand:#10244a;
+  --brand2:#ff7a1a;
+  --blue:#4f6bff;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --green:#10b981;
+  --soft-shadow:0 2px 8px #0f27470f,0 1px 2px #0f274714;
+}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 "Inter","Segoe UI",Arial,sans-serif}
+.app-shell{min-height:100vh;display:grid;grid-template-columns:244px minmax(0,1fr);background:var(--bg)}
+.sidebar{position:sticky;top:0;height:100vh;background:#10244a;color:#fff;display:flex;flex-direction:column;border-right:1px solid #0b1c3a}
+.sidebar-brand{min-width:0;padding:18px 16px;border-bottom:1px solid #20375f}.sidebar-brand .brand-mark{width:40px;height:40px;border-radius:12px;background:#fff;color:#10244a}.sidebar-brand .brand strong{color:#fff}.sidebar-brand strong{color:#fff;font-size:18px}.sidebar-brand span{color:#93b7ff}
+.content-shell{min-width:0}.content-shell .topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid var(--line);padding:14px 24px;box-shadow:none}.content-shell .topbar h1{font-size:24px;margin:0;color:var(--ink)}.content-shell .topbar p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.tabs{display:flex;flex-direction:column;gap:6px;padding:14px 12px;flex:1}.tabs button{width:100%;display:flex;align-items:center;gap:10px;border:0;border-radius:12px;padding:11px 12px;color:#9dc7ff;background:transparent;font-weight:750;text-align:left}.tabs button:hover{background:#19335f;color:#fff}.tabs button.active{background:var(--brand2);color:#fff;box-shadow:0 8px 18px #ff7a1a30}.tabs button svg{flex:0 0 auto}
+.user-menu{margin:0;padding:14px 14px;border-top:1px solid #20375f;color:#dbeafe;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}.user-menu .user-avatar{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;background:#20375f;color:#93c5fd;border:0;padding:0}.user-menu strong{display:block;color:#fff;font-size:12px;max-width:135px;overflow:hidden;text-overflow:ellipsis}.user-menu span{display:block;background:transparent;border:0;padding:0;color:#8ab6ff;font-size:12px;font-weight:700}.logout-button{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:#60a5fa;background:#172f58;border:1px solid #28446f;padding:0}
+main{max-width:none;margin:0;padding:24px}.view.active{display:block}
+.section-head{margin-bottom:18px}.section-head h1{font-size:22px;color:var(--ink)}.section-head p{color:var(--muted)}
+.panel,.record,.metric,.login-stage,.modal-card{border:1px solid var(--line);border-radius:16px;box-shadow:var(--soft-shadow);background:#fff}.panel{padding:20px;margin-bottom:18px}.metric{border-left:0;padding:20px;min-height:96px}.metric span{color:#52627a;letter-spacing:.05em}.metric strong{color:#071f46;font-size:25px}.metric-button:hover{transform:translateY(-1px);box-shadow:0 6px 18px #10244a18;border-color:#c9d5e5}.metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+button,.button-link{border-radius:12px;font-weight:750;transition:.15s ease;border:1px solid transparent}.primary{background:var(--brand2);border-color:var(--brand2);color:#fff}.primary:hover{background:#f06f0f}.secondary,.button-link.secondary{background:#fff;border-color:var(--line);color:#23324a}.secondary:hover,.button-link.secondary:hover{background:#f8fafc;border-color:#cbd7e6}.danger{background:#fff;border-color:#f5c6c6;color:#dc2626}.danger:hover{background:#fff5f5}
+.filters{align-items:center;margin-bottom:16px}.filters button{border:1px solid var(--line);background:#fff;color:#52627a;border-radius:999px;padding:8px 13px}.filters button:hover{background:#f8fafc}.filters button.active{background:#10244a;color:#fff;border-color:#10244a}
+input,select,textarea{border-color:#d8e1ee;border-radius:12px;background:#fff;padding:10px 12px;color:var(--ink)}input:focus,select:focus,textarea:focus{outline:3px solid #ff7a1a1f;border-color:#ffad75}label{color:#64748b}
+.search{max-width:420px;border-radius:999px}
+.data-table{border:0;border-collapse:separate;border-spacing:0;background:#fff}.data-table th{background:#f8fafc;color:#52627a;border-bottom:1px solid var(--line);padding:12px 14px}.data-table td{border-bottom:1px solid #edf2f7;padding:13px 14px}.data-table tr:last-child td{border-bottom:0}.data-table small{display:block;color:var(--muted);margin-top:2px}
+.badge{border-radius:999px;padding:4px 10px;font-weight:800}.status-paid,.paid,.status-accepted,.status-gst-paid{background:#dff8ed;color:#047857}.status-unpaid,.unpaid,.status-cancelled,.cancel,.status-gst-pending{background:#fee7e7;color:#dc2626}.status-partially-paid,.partial,.status-draft,.status-sent,.status-expired,.status-rejected{background:#fff3d7;color:#a35a00}.badge.imported{background:#e8efff;color:#315cff}
+.record-actions{gap:7px}.small{border-radius:10px}.notice{border-radius:14px}.modal{background:#10244a66}.modal-card{border-radius:18px}.close{color:#64748b}
+.item-table,.totals{border-radius:14px;border-color:var(--line)}.item-head{background:#f8fafc}.item-row{border-top:1px solid #edf2f7}
+.auth-shell{background:#f5f7fb}.login-stage{border-radius:20px}.login-hero{background:#10244a}.login-card{border-left:1px solid var(--line)}
+@media(max-width:980px){.app-shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.tabs{flex-direction:row;overflow-x:auto}.tabs button{flex:0 0 auto;width:auto}.user-menu{grid-template-columns:auto 1fr auto}.content-shell .topbar{position:relative}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){main{padding:14px}.content-shell .topbar{padding:12px 14px}.metric-grid{grid-template-columns:1fr}.tabs{padding:10px}.sidebar-brand{padding:14px}.panel{padding:14px}}
