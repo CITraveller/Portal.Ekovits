@@ -309,6 +309,12 @@ input[readonly]{background:#f8fafc;color:#405574;font-weight:700}
 .login-logo.has-logo,.login-brand .brand-mark.has-logo{background:#fff}
 .login-card{border-left:1px solid var(--line)}
 .asset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.form-page-head{border:1px solid var(--line);border-radius:14px;background:#fbfdff;padding:18px 20px}
+.form-page-head h2{margin-bottom:4px}
+.sticky-actions{position:sticky;bottom:0;z-index:8;margin:4px -24px -48px;padding:14px 24px;background:#ffffffeb;border-top:1px solid var(--line);backdrop-filter:blur(10px)}
+.customer-profile .panel p{margin:0 0 12px;color:#405574;line-height:1.55}
+.customer-profile .panel p:last-child{margin-bottom:0}
+.crm-form>.panel{margin-bottom:0}
 .contact-row{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto auto;gap:8px;align-items:center}
 .checkline{display:flex;flex-direction:row;align-items:center;gap:7px;text-transform:none;letter-spacing:0}
 .checkline input{width:auto;min-height:auto}
@@ -333,6 +339,7 @@ input[readonly]{background:#f8fafc;color:#405574;font-weight:700}
   .metric-grid,.grid.two,.grid.four,.asset-grid{grid-template-columns:1fr}
   .panel{padding:16px}
   .data-table{min-width:820px}
+  .sticky-actions{margin:4px -16px -16px;padding:12px 16px}
   .item-head{display:none}
   .item-row{grid-template-columns:1fr;gap:10px}
   .item-row:before{content:"Line item";color:#405574;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}

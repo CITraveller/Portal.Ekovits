@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { api } from "../services/api.js";
-import { Modal } from "../components/Modal.jsx";
 import { inr } from "../utils/money.js";
 
 const blank = { name: "", legalName: "", billingAddress: "", shippingAddress: "", contactPerson: "", designation: "", contactNumber: "", alternatePhone: "", email: "", gstin: "", state: "Maharashtra", stateCode: "27", country: "India", pinCode: "", pan: "", customerType: "Sales Customer Account", notes: "", active: true, contacts: [] };
@@ -11,6 +10,7 @@ export default function Customers({ ctx }) {
   const [type, setType] = useState("all");
   const [editing, setEditing] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [view, setView] = useState("list");
   const rows = useMemo(() => ctx.customers
     .filter(c => [c.name, c.legalName, c.gstin, c.contactPerson, c.contactNumber, c.email, c.customerType].join(" ").toLowerCase().includes(search.toLowerCase()))
     .filter(c => status === "all" || (status === "active" ? c.active : !c.active))
@@ -19,16 +19,52 @@ export default function Customers({ ctx }) {
     editing?.id ? await api.customers.update(editing.id, form) : await api.customers.create(form);
     ctx.notify("Customer saved.");
     setEditing(null);
+    setView("list");
     await ctx.reload();
   };
   const openProfile = async (customer) => {
-    try { setProfile(await api.customers.get(customer.id)); } catch (err) { ctx.notify(err.message, "err"); }
+    try {
+      setProfile(await api.customers.get(customer.id));
+      setEditing(null);
+      setView("profile");
+    } catch (err) { ctx.notify(err.message, "err"); }
   };
+  const openForm = (customer = blank) => {
+    setEditing(customer);
+    setProfile(null);
+    setView("form");
+  };
+  const closeSubpage = () => {
+    setEditing(null);
+    setProfile(null);
+    setView("list");
+  };
+  if (view === "form" && editing) {
+    return <section className="view active">
+      <div className="section-head">
+        <div><h1>{editing.id ? "Edit Customer" : "Add Customer"}</h1><p>Maintain company profile, GST details, billing addresses, and CRM contacts.</p></div>
+        <button className="secondary" onClick={closeSubpage}>Back to Customers</button>
+      </div>
+      <CustomerForm initial={editing} onSave={save} onCancel={closeSubpage} />
+    </section>;
+  }
+  if (view === "profile" && profile) {
+    return <section className="view active">
+      <div className="section-head">
+        <div><h1>{profile.name}</h1><p>Customer account profile, contact data, and business history.</p></div>
+        <div className="actions">
+          <button className="secondary" onClick={closeSubpage}>Back to Customers</button>
+          <button className="primary" onClick={() => openForm(profile)}>Edit Customer</button>
+        </div>
+      </div>
+      <CustomerProfile customer={profile} />
+    </section>;
+  }
   return (
     <section className="view active">
       <div className="section-head">
         <div><h1>Customers</h1><p>CRM-style customer accounts, contacts, GST information, and business history.</p></div>
-        <button className="primary" onClick={() => setEditing(blank)}>Add Customer</button>
+        <button className="primary" onClick={() => openForm(blank)}>Add Customer</button>
       </div>
       <div className="filters">
         <input className="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search company, GSTIN, contact, status, type" />
@@ -47,23 +83,21 @@ export default function Customers({ ctx }) {
             <td><span className="badge">{c.customerType}</span></td>
             <td><span className={`badge ${c.active ? "paid" : "cancel"}`}>{c.active ? "Active" : "Inactive"}</span></td>
             <td>{formatDate(c.createdAt)}</td>
-            <td><div className="record-actions"><button className="small secondary" onClick={() => openProfile(c)}>View</button><button className="small secondary" onClick={() => setEditing(c)}>Edit</button>{c.active && <button className="small danger" onClick={async () => { if (confirm(`Deactivate ${c.name}?`)) { await api.customers.remove(c.id); await ctx.reload(); } }}>Deactivate</button>}</div></td>
+            <td><div className="record-actions"><button className="small secondary" onClick={() => openProfile(c)}>View</button><button className="small secondary" onClick={() => openForm(c)}>Edit</button>{c.active && <button className="small danger" onClick={async () => { if (confirm(`Deactivate ${c.name}?`)) { await api.customers.remove(c.id); await ctx.reload(); } }}>Deactivate</button>}</div></td>
           </tr>)}
           {!rows.length && <tr><td colSpan="10">No customers.</td></tr>}
         </tbody></table>
       </div>
-      <Modal onClose={() => setEditing(null)}>{editing && <CustomerForm initial={editing} onSave={save} />}</Modal>
-      <Modal onClose={() => setProfile(null)}>{profile && <CustomerProfile customer={profile} />}</Modal>
     </section>
   );
 }
 
-export function CustomerForm({ initial, onSave }) {
+export function CustomerForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState({ ...blank, ...initial, contacts: initial.contacts?.length ? initial.contacts : [{ name: initial.contactPerson || "", designation: initial.designation || "", email: initial.email || "", phone: initial.contactNumber || "", isPrimary: true }] });
   const set = (key, value) => setForm({ ...form, [key]: value });
   const setContact = (index, next) => set("contacts", form.contacts.map((contact, i) => i === index ? { ...contact, ...next } : contact));
   return <form className="stack crm-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
-    <h2>{form.id ? "Edit Customer" : "Add Customer"}</h2>
+    <div className="form-page-head"><h2>{form.id ? "Customer Details" : "New Customer Details"}</h2><p className="hint">Fields are grouped like a CRM account record. Required fields stay the same as before.</p></div>
     <div className="panel"><h2>Company Information</h2><div className="grid four">
       {field("Company / Customer Name", "name", form, set, true)}
       {field("Legal Name", "legalName", form, set)}
@@ -95,8 +129,11 @@ export function CustomerForm({ initial, onSave }) {
         <button type="button" className="danger small" onClick={() => set("contacts", form.contacts.filter((_, i) => i !== index))}>Remove</button>
       </div>)}</div>
     </div>
-    {area("Notes", "notes", form, set)}
-    <button className="primary">Save Customer</button>
+    <div className="panel">{area("Notes", "notes", form, set)}</div>
+    <div className="form-actions sticky-actions">
+      <button type="button" className="secondary" onClick={onCancel}>Cancel</button>
+      <button className="primary">Save Customer</button>
+    </div>
   </form>;
 }
 
