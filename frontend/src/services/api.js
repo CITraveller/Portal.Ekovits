@@ -27,18 +27,21 @@ export const api = {
   },
   customers: {
     list: search => request(`/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    get: id => request(`/customers/${id}`),
     create: data => request("/customers", { method: "POST", body: data }),
     update: (id, data) => request(`/customers/${id}`, { method: "PUT", body: data }),
     remove: id => request(`/customers/${id}`, { method: "DELETE" })
   },
   hsn: {
     list: search => request(`/hsn${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    get: id => request(`/hsn/${id}`),
     create: data => request("/hsn", { method: "POST", body: data }),
     update: (id, data) => request(`/hsn/${id}`, { method: "PUT", body: data }),
     remove: id => request(`/hsn/${id}`, { method: "DELETE" })
   },
   invoices: {
     list: search => request(`/invoices${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    get: id => request(`/invoices/${id}`),
     reserveNumber: () => request("/invoices/next-number", { method: "POST" }),
     create: data => request("/invoices", { method: "POST", body: data }),
     update: (id, data) => request(`/invoices/${id}`, { method: "PUT", body: data }),
@@ -55,6 +58,7 @@ export const api = {
   },
   quotations: {
     list: search => request(`/quotations${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    get: id => request(`/quotations/${id}`),
     reserveNumber: () => request("/quotations/next-number", { method: "POST" }),
     create: data => request("/quotations", { method: "POST", body: data }),
     update: (id, data) => request(`/quotations/${id}`, { method: "PUT", body: data }),

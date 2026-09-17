@@ -216,7 +216,7 @@ body{background:#fff;color:var(--ink);font-family:Inter,-apple-system,BlinkMacSy
 .logout-button:hover{background:#101b2b;color:#fff}
 .content-shell{min-width:0;background:#fff}
 .content-shell .topbar{position:sticky;top:0;z-index:10;height:50px;display:flex;align-items:center;justify-content:space-between;background:var(--topbar);border:0;box-shadow:none;padding:0 24px}
-.content-shell .topbar h1{margin:0;color:#111827;font-size:16px;font-weight:800;letter-spacing:-.03em}
+.content-shell .topbar h1{margin:0;color:#e8edf5;font-size:16px;font-weight:800;letter-spacing:-.03em}
 .content-shell .topbar p{display:none}
 .topbar-actions{display:flex;align-items:center;gap:14px;margin-left:auto}
 .gstin-pill{display:inline-flex;align-items:center;min-height:24px;border-radius:999px;background:#173f43;color:#18d39a;font-size:11px;font-weight:800;letter-spacing:.04em;padding:4px 12px;text-transform:uppercase}
@@ -265,9 +265,10 @@ button:hover,.button-link:hover,.file-action:hover{background:#f8fafc;border-col
 .status-unpaid,.unpaid,.status-overdue,.status-cancelled,.cancel,.status-rejected,.status-gst-pending{background:#ffe0e6;color:#ff3153}
 .status-expired{background:#f3e8ff;color:#8b5cf6}
 .metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:18px}
-.metric{min-height:90px;padding:18px 18px;text-align:left}
+.metric{display:block;min-height:90px;padding:18px 18px;text-align:left}
 .metric span{display:block;color:#5f718f;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .metric strong{display:block;margin-top:8px;color:#071326;font-size:24px;font-weight:800;line-height:1}
+.metric-button{width:100%;appearance:none}
 .metric-button:hover{transform:translateY(-1px);border-color:#cad7ea;background:#fbfdff}
 label{display:flex;flex-direction:column;gap:7px;color:#405574;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 input,select,textarea{width:100%;min-height:38px;border:1px solid #d9e2f2;border-radius:11px;background:#fff;color:#071326;font:400 14px/1.35 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding:9px 12px;letter-spacing:0;text-transform:none}
@@ -300,9 +301,12 @@ input[readonly]{background:#f8fafc;color:#405574;font-weight:700}
 .close{position:absolute;right:12px;top:10px;width:30px;height:30px;min-height:30px;border:0;background:transparent;color:#60728d;font-size:20px;padding:0}
 .toast{background:#071326;border-radius:12px;color:#fff}
 .toast.err{background:#d7193a}
-.auth-shell{background:#f8fafc}
-.login-stage{overflow:hidden;border-radius:18px}
-.login-hero{background:#070d18}
+.auth-shell{background:linear-gradient(135deg,#f8fbff 0%,#f2f7ff 45%,#ffffff 100%)}
+.login-stage{overflow:hidden;border-radius:18px;border-color:#e1e8f3}
+.login-hero{background:linear-gradient(160deg,#070d18 0%,#081b2e 54%,#08324a 100%)}
+.login-logo,.login-brand .brand-mark{background:#4f7cff;color:#fff}
+.login-logo{border-color:#74a7ff}
+.login-logo.has-logo,.login-brand .brand-mark.has-logo{background:#fff}
 .login-card{border-left:1px solid var(--line)}
 .asset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .contact-row{display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr auto auto;gap:8px;align-items:center}
