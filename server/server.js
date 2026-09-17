@@ -19,6 +19,7 @@ import { quotationsRouter } from "./routes/quotations.js";
 import { requireAuth } from "./middleware/auth.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 import { verifySchema } from "./db/init.js";
+import { applyMigrations } from "./db/migrations.js";
 
 fs.mkdirSync(env.uploadDir, { recursive: true });
 
@@ -78,6 +79,21 @@ app.use("/api/quotations", quotationsRouter);
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(env.port, () => {
-  console.log(`EKOVITS API listening on http://localhost:${env.port}`);
-});
+async function startServer() {
+  try {
+    await applyMigrations();
+    const schema = await verifySchema();
+    if (!schema.ready) {
+      throw new Error(`Database schema is incomplete. Missing tables: ${schema.missing.join(", ")}`);
+    }
+    app.listen(env.port, () => {
+      console.log(`EKOVITS API listening on http://localhost:${env.port}`);
+    });
+  } catch (error) {
+    console.error("EKOVITS API startup failed:");
+    console.error(error);
+    process.exit(1);
+  }
+}
+
+startServer();
