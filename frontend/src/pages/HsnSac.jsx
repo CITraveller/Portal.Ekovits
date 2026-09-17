@@ -47,7 +47,7 @@ export default function HsnSac({ ctx }) {
 export function HsnSacForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(initial);
   const set = (key, value) => setForm({ ...form, [key]: value });
-  return <form className="stack" onSubmit={e => { e.preventDefault(); onSave(form); }}>
+  return <form className="stack master-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
     <div className="form-page-head"><h2>Classification Details</h2><p className="hint">Use this record to standardize invoice line-item tax defaults.</p></div>
     <div className="panel"><h2>HSN/SAC Information</h2><div className="grid two">
       <label>HSN/SAC Code<input required value={form.code || ""} onChange={e => set("code", e.target.value)} /></label>
