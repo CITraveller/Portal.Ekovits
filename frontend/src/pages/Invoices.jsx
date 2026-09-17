@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Copy, Eye, FileText, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { api } from "../services/api.js";
 import { inr } from "../utils/money.js";
 import { Modal } from "../components/Modal.jsx";
@@ -18,7 +19,6 @@ export default function Invoices({ ctx, initialFilter = "all" }) {
     .filter(i => [i.invoiceNo, i.clientName, i.clientGstin, i.paymentStatus, i.invoiceStatus, i.source, i.totals.grandTotalCents / 100].join(" ").toLowerCase().includes(search.toLowerCase()))
     .filter(i => filter === "all"
       || (filter === "system" && !i.imported)
-      || (filter === "imported" && i.imported)
       || (filter === "cancelled" && i.invoiceStatus === "Cancelled")
       || (filter === "draft" && i.invoiceStatus === "Draft")
       || (filter === "sent" && i.invoiceStatus === "Final")
@@ -108,13 +108,13 @@ export default function Invoices({ ctx, initialFilter = "all" }) {
     <div className="table-wrap panel invoice-ledger">
       <div className="invoice-ledger-toolbar">
         <div className="filters invoice-tabs">
-          {["all", "draft", "sent", "paid", "partial", "unpaid", "overdue", "cancelled", "system", "imported"].map(id => <button key={id} className={filter === id ? "active" : ""} onClick={() => setFilter(id)}>{labelFilter(id)}</button>)}
+          {["all", "draft", "sent", "paid", "partial", "unpaid", "overdue", "cancelled", "system"].map(id => <button key={id} className={filter === id ? "active" : ""} onClick={() => setFilter(id)}>{labelFilter(id)}</button>)}
         </div>
         <input className="search invoice-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice or customer..." />
       </div>
       <table className="data-table invoice-table"><thead><tr><th>Invoice No</th><th>Customer</th><th>Invoice Date</th><th>Due Date</th><th>Subtotal</th><th>Tax</th><th>Total</th><th>Status</th><th>Payment Status</th><th>Actions</th></tr></thead><tbody>
         {rows.map(invoice => <tr key={invoice.id}>
-          <td><strong>{invoice.invoiceNo}</strong>{invoice.imported && <span className="badge imported">Imported</span>}</td>
+          <td><strong>{invoice.invoiceNo}</strong></td>
           <td><span className="invoice-customer">{invoice.clientName}</span><small>{invoice.clientGstin || "No GSTIN"}</small></td>
           <td>{formatDate(invoice.invoiceDate)}</td>
           <td className={isOverdue(invoice) ? "err-text" : ""}>{formatDate(invoice.dueDate)}</td>
@@ -124,12 +124,12 @@ export default function Invoices({ ctx, initialFilter = "all" }) {
           <td><StatusBadge value={displayInvoiceStatus(invoice)} /></td>
           <td><StatusBadge value={displayPaymentStatus(invoice)} /></td>
           <td><div className="invoice-row-actions">
-            <button className="icon-action" title="View invoice" onClick={() => setPreview(invoice)}>View</button>
-            <button className="icon-action" title="Edit invoice" onClick={() => ctx.editInvoice(invoice)}>Edit</button>
-            <button className="icon-action" title="Duplicate invoice" onClick={() => ctx.duplicateInvoice(invoice)}>Copy</button>
-            <button className="icon-action" title="Print or save PDF" onClick={() => setPreview(invoice)}>PDF</button>
+            <button className="icon-action" aria-label="View invoice" title="View invoice" onClick={() => setPreview(invoice)}><Eye size={17} /></button>
+            <button className="icon-action" aria-label="Edit invoice" title="Edit invoice" onClick={() => ctx.editInvoice(invoice)}><Pencil size={17} /></button>
+            <button className="icon-action" aria-label="Duplicate invoice" title="Duplicate invoice" onClick={() => ctx.duplicateInvoice(invoice)}><Copy size={17} /></button>
+            <button className="icon-action" aria-label="Print or save PDF" title="Print or save PDF" onClick={() => setPreview(invoice)}><FileText size={17} /></button>
             <div className="action-menu">
-              <button className="icon-action action-trigger" title="More actions" onClick={() => setOpenActions(openActions === invoice.id ? null : invoice.id)}>More</button>
+              <button className="icon-action action-trigger" aria-label="More invoice actions" title="More actions" onClick={() => setOpenActions(openActions === invoice.id ? null : invoice.id)}><MoreHorizontal size={18} /></button>
               {openActions === invoice.id && <div className="action-dropdown">
                 <p>Payment Status</p>
                 {["Paid", "Partially Paid", "Unpaid"].map(status => <button key={status} onClick={() => setPaymentStatus(invoice, status)}><span className={invoice.paymentStatus === status ? "check on" : "check"} />{status}</button>)}
@@ -141,7 +141,7 @@ export default function Invoices({ ctx, initialFilter = "all" }) {
                 {invoice.imported && <label>Attach Original PDF<input type="file" accept="application/pdf" onChange={e => uploadOriginal(invoice, e.target.files?.[0])} /></label>}
                 <p>Invoice</p>
                 {invoice.invoiceStatus !== "Cancelled" && <button onClick={() => cancelInvoice(invoice)}>Cancel Invoice</button>}
-                <button className="danger-row" onClick={() => deleteInvoice(invoice)}>Delete Invoice</button>
+                <button className="danger-row" onClick={() => deleteInvoice(invoice)}><Trash2 size={15} />Delete Invoice</button>
               </div>}
             </div>
           </div></td>
@@ -176,7 +176,7 @@ function ImportMessages({ title, items }) {
 }
 
 function labelFilter(id) {
-  return ({ all: "All", pendingPayment: "Pending Payment", system: "System", imported: "Imported", cancelled: "Cancelled", draft: "Draft", sent: "Sent", paid: "Paid", partial: "Partial", unpaid: "Unpaid", overdue: "Overdue", pendingGst: "Pending GST", gstPaid: "GST Paid" })[id] || id;
+  return ({ all: "All", pendingPayment: "Pending Payment", system: "System", cancelled: "Cancelled", draft: "Draft", sent: "Sent", paid: "Paid", partial: "Partial", unpaid: "Unpaid", overdue: "Overdue", pendingGst: "Pending GST", gstPaid: "GST Paid" })[id] || id;
 }
 
 function StatusBadge({ value }) {

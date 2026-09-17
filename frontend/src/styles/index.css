@@ -443,7 +443,8 @@ input[readonly]{background:#f8fafc;color:#405574;font-weight:700}
 .invoice-table .badge{min-height:28px;font-size:12px;padding:5px 14px}
 .status-not-applicable{background:#eef1f5;color:#6b778c}
 .invoice-row-actions{position:relative;display:flex;align-items:center;gap:7px;min-width:244px}
-.icon-action{min-width:0;min-height:30px;border:0;border-radius:8px;background:transparent;color:#405574;font-size:12px;font-weight:700;padding:5px 7px}
+.icon-action{width:32px;min-width:32px;min-height:30px;border:0;border-radius:8px;background:transparent;color:#405574;font-size:12px;font-weight:700;padding:5px}
+.icon-action svg{display:block;stroke-width:2}
 .icon-action:hover{background:#f1f5f9;color:#0f172a}
 .action-menu{position:relative}
 .action-trigger{border:1px solid #d9e2f2;background:#fff}
@@ -463,3 +464,6 @@ input[readonly]{background:#f8fafc;color:#405574;font-weight:700}
   .invoice-tabs{width:100%}
   .invoice-search{flex:auto;width:100%;max-width:none;margin:0}
 }
+
+/* Project-wide typography */
+html,body,#root,button,input,select,textarea,.button-link,.file-action{font-family:'Inter',sans-serif}
