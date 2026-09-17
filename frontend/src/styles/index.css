@@ -366,3 +366,60 @@ input[readonly]{background:#f8fafc;color:#405574;font-weight:700}
   .item-row .taxable{text-align:left}
   .contact-row{grid-template-columns:1fr}
 }
+
+/* Enterprise customer account presentation */
+.customer-list-table .data-table td{height:58px}
+.customer-list-table .record-actions{min-width:178px}
+.account-cell{display:flex;min-width:190px;flex-direction:column;gap:3px}
+.account-cell strong{color:#071326;font-size:14px;font-weight:700;line-height:1.25}
+.account-cell small{margin:0;color:#6b778c;font-size:12px;line-height:1.25}
+.account-cell.compact{min-width:150px}
+.account-record{gap:14px}
+.account-record-header{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:18px;align-items:start;margin-bottom:0;padding:18px}
+.account-record-title{display:flex;align-items:center;gap:14px;min-width:0}
+.account-avatar{width:46px;height:46px;flex:0 0 auto;display:grid;place-items:center;border-radius:12px;background:#eef6ff;color:#0176d3;font-size:15px;font-weight:800;letter-spacing:.03em}
+.account-record-title h2{margin:1px 0 2px;color:#0f172a;font-size:24px;font-weight:650;letter-spacing:-.02em}
+.account-record-title p{margin:0;color:#5f6b7a;font-size:13px}
+.eyebrow{display:block;color:#667085;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.account-record-badges{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.account-key-fields{grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #eef1f5;margin-top:2px;padding-top:14px;gap:0}
+.account-info-tile{min-width:0;border-right:1px solid #eef1f5;padding:0 16px}
+.account-info-tile:first-child{padding-left:0}
+.account-info-tile:last-child{border-right:0;padding-right:0}
+.account-info-tile span{display:block;margin-bottom:5px;color:#667085;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.account-info-tile strong{display:block;overflow:hidden;color:#172b4d;font-size:14px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}
+.account-tabs{display:flex;align-items:flex-end;gap:24px;border-bottom:1px solid var(--line);margin:2px 0 14px;padding:0 4px}
+.account-tabs button{min-height:38px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#44546f;font-size:14px;font-weight:650;padding:8px 2px}
+.account-tabs button:hover{background:transparent;border-bottom-color:#c7d2e1;color:#0f172a}
+.account-tabs button.active{border-bottom-color:#050505;color:#050505}
+.account-detail-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(320px,1fr);gap:16px}
+.account-section{overflow:hidden;margin-bottom:0;padding:0}
+.account-section.wide{grid-column:1 / -1}
+.account-section>h2,.related-head{min-height:44px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#f7f8fa;margin:0;padding:11px 16px;color:#17324d;font-size:17px;font-weight:550;letter-spacing:0}
+.related-head span{color:#667085;font-size:12px;font-weight:600}
+.account-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.account-field-grid.single{grid-template-columns:1fr}
+.account-field{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:center;gap:14px;min-height:44px;border-bottom:1px solid #eef1f5;padding:7px 16px}
+.account-field:nth-last-child(-n+2){border-bottom:0}
+.account-field-grid.single .account-field:last-child{border-bottom:0}
+.account-field span{color:#667085;font-size:12px;font-weight:400}
+.account-field strong{overflow:hidden;color:#172b4d;font-size:13px;font-weight:500;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
+.account-field.multiline{align-items:start;min-height:66px}
+.account-field.multiline strong{white-space:pre-line}
+.related-panel{overflow:hidden;padding:0}
+.account-contact-table th,.account-contact-table td{height:46px}
+.account-metrics{grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:16px}
+.account-metrics .metric{min-height:78px}
+.business-summary{display:block}
+@media(max-width:1100px){
+  .account-key-fields,.account-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .account-info-tile{border-right:0;border-bottom:1px solid #eef1f5;padding:10px 0}
+  .account-detail-grid{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  .account-record-header{grid-template-columns:1fr}
+  .account-record-badges{justify-content:flex-start}
+  .account-key-fields,.account-field-grid,.account-metrics{grid-template-columns:1fr}
+  .account-field{grid-template-columns:1fr;gap:3px;align-items:start}
+  .account-tabs{gap:14px;overflow-x:auto}
+}

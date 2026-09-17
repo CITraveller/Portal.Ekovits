@@ -71,21 +71,20 @@ export default function Customers({ ctx }) {
         {["all", "active", "inactive"].map(id => <button key={id} className={status === id ? "active" : ""} onClick={() => setStatus(id)}>{id}</button>)}
         {["all", "Sales Customer Account", "Support Customer Account"].map(id => <button key={id} className={type === id ? "active" : ""} onClick={() => setType(id)}>{id === "all" ? "All Types" : id}</button>)}
       </div>
-      <div className="table-wrap panel">
-        <table className="data-table"><thead><tr><th>Customer Name</th><th>Company Name</th><th>GSTIN</th><th>Primary Contact</th><th>Email</th><th>Phone</th><th>Customer Type</th><th>Status</th><th>Created Date</th><th>Actions</th></tr></thead><tbody>
+      <div className="table-wrap panel customer-list-table">
+        <table className="data-table"><thead><tr><th>Account</th><th>Primary Contact</th><th>GSTIN / PAN</th><th>Phone</th><th>Email</th><th>Account Type</th><th>Status</th><th>Created Date</th><th>Actions</th></tr></thead><tbody>
           {rows.map(c => <tr key={c.id}>
-            <td><strong>{c.name}</strong></td>
-            <td>{c.legalName || c.name}</td>
-            <td>{c.gstin || "-"}</td>
-            <td>{c.contactPerson || "-"}</td>
-            <td>{c.email || "-"}</td>
+            <td><div className="account-cell"><strong>{c.name}</strong><small>{c.legalName && c.legalName !== c.name ? c.legalName : [c.state, c.country].filter(Boolean).join(", ") || "Customer account"}</small></div></td>
+            <td><div className="account-cell compact"><strong>{c.contactPerson || "-"}</strong><small>{c.designation || "Primary contact"}</small></div></td>
+            <td><div className="account-cell compact"><strong>{c.gstin || "-"}</strong><small>{c.pan || "PAN not added"}</small></div></td>
             <td>{c.contactNumber || "-"}</td>
+            <td>{c.email || "-"}</td>
             <td><span className="badge">{c.customerType}</span></td>
             <td><span className={`badge ${c.active ? "paid" : "cancel"}`}>{c.active ? "Active" : "Inactive"}</span></td>
             <td>{formatDate(c.createdAt)}</td>
             <td><div className="record-actions"><button className="small secondary" onClick={() => openProfile(c)}>View</button><button className="small secondary" onClick={() => openForm(c)}>Edit</button>{c.active && <button className="small danger" onClick={async () => { if (confirm(`Deactivate ${c.name}?`)) { await api.customers.remove(c.id); await ctx.reload(); } }}>Deactivate</button>}</div></td>
           </tr>)}
-          {!rows.length && <tr><td colSpan="10">No customers.</td></tr>}
+          {!rows.length && <tr><td colSpan="9">No customers.</td></tr>}
         </tbody></table>
       </div>
     </section>
@@ -138,23 +137,112 @@ export function CustomerForm({ initial, onSave, onCancel }) {
 }
 
 function CustomerProfile({ customer }) {
+  const [tab, setTab] = useState("details");
   const h = customer.history || {};
-  return <div className="stack customer-profile">
-    <div><h2>{customer.name}</h2><p className="hint">{customer.customerType} · {customer.active ? "Active" : "Inactive"}</p></div>
-    <div className="metric-grid">
-      <div className="metric"><span>Total Invoices</span><strong>{h.total_invoices || 0}</strong></div>
-      <div className="metric"><span>Paid Amount</span><strong>{inr(h.paid_cents || 0)}</strong></div>
-      <div className="metric"><span>Outstanding</span><strong>{inr(h.outstanding_cents || 0)}</strong></div>
-      <div className="metric"><span>Quotations</span><strong>{h.total_quotations || 0}</strong></div>
-      <div className="metric"><span>Accepted Quotes</span><strong>{h.accepted_quotations || 0}</strong></div>
+  const contacts = customer.contacts || [];
+  return <div className="stack customer-profile account-record">
+    <div className="panel account-record-header">
+      <div className="account-record-title">
+        <div className="account-avatar">{initials(customer.name)}</div>
+        <div>
+          <span className="eyebrow">Customer Account</span>
+          <h2>{customer.name}</h2>
+          <p>{customer.legalName || customer.customerType || "Account profile"}</p>
+        </div>
+      </div>
+      <div className="account-record-badges">
+        <span className="badge">{customer.customerType}</span>
+        <span className={`badge ${customer.active ? "paid" : "cancel"}`}>{customer.active ? "Active" : "Inactive"}</span>
+      </div>
+      <div className="account-key-fields">
+        {infoTile("GSTIN", customer.gstin)}
+        {infoTile("Primary Contact", customer.contactPerson)}
+        {infoTile("Email", customer.email)}
+        {infoTile("Phone", customer.contactNumber)}
+      </div>
     </div>
-    <div className="grid two">
-      <div className="panel"><h2>Overview</h2><p><strong>Legal Name:</strong> {customer.legalName || customer.name}</p><p><strong>GSTIN:</strong> {customer.gstin || "-"}</p><p><strong>PAN:</strong> {customer.pan || "-"}</p><p><strong>Billing:</strong><br />{customer.billingAddress}</p><p><strong>Shipping:</strong><br />{customer.shippingAddress || "-"}</p></div>
-      <div className="panel"><h2>Contacts</h2>{(customer.contacts || []).map(contact => <p key={contact.id || contact.name}><strong>{contact.name}</strong> {contact.isPrimary && <span className="badge paid">Primary</span>}<br />{contact.designation || "-"}<br />{contact.email || "-"} · {contact.phone || "-"}</p>)}</div>
+
+    <div className="account-tabs" role="tablist" aria-label="Customer account sections">
+      {["details", "contacts", "business"].map(id => <button key={id} type="button" className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{id === "details" ? "Details" : id === "contacts" ? `Contacts (${contacts.length})` : "Business Summary"}</button>)}
     </div>
+
+    {tab === "details" && <div className="account-detail-grid">
+      <div className="panel account-section">
+        <h2>Account Information</h2>
+        <div className="account-field-grid">
+          {infoRow("Customer Name", customer.name)}
+          {infoRow("Legal Name", customer.legalName || customer.name)}
+          {infoRow("Customer Type", customer.customerType)}
+          {infoRow("Status", customer.active ? "Active" : "Inactive")}
+          {infoRow("GSTIN", customer.gstin)}
+          {infoRow("PAN", customer.pan)}
+          {infoRow("State", customer.state)}
+          {infoRow("State Code", customer.stateCode)}
+          {infoRow("Country", customer.country)}
+          {infoRow("PIN Code", customer.pinCode)}
+        </div>
+      </div>
+      <div className="panel account-section">
+        <h2>Primary Contact</h2>
+        <div className="account-field-grid single">
+          {infoRow("Contact Person", customer.contactPerson)}
+          {infoRow("Designation", customer.designation)}
+          {infoRow("Email", customer.email)}
+          {infoRow("Phone", customer.contactNumber)}
+          {infoRow("Alternate Phone", customer.alternatePhone)}
+        </div>
+      </div>
+      <div className="panel account-section wide">
+        <h2>Address Information</h2>
+        <div className="account-field-grid">
+          {infoRow("Billing Address", customer.billingAddress, true)}
+          {infoRow("Shipping Address", customer.shippingAddress, true)}
+          {infoRow("Notes", customer.notes, true)}
+        </div>
+      </div>
+    </div>}
+
+    {tab === "contacts" && <div className="panel related-panel">
+      <div className="related-head"><h2>Related Contacts</h2><span>{contacts.length} contact{contacts.length === 1 ? "" : "s"}</span></div>
+      <div className="table-wrap">
+        <table className="data-table account-contact-table"><thead><tr><th>Name</th><th>Designation</th><th>Email</th><th>Phone</th><th>Type</th></tr></thead><tbody>
+          {contacts.map(contact => <tr key={contact.id || `${contact.name}-${contact.email}`}>
+            <td><strong>{contact.name || "-"}</strong></td>
+            <td>{contact.designation || "-"}</td>
+            <td>{contact.email || "-"}</td>
+            <td>{contact.phone || "-"}</td>
+            <td>{contact.isPrimary ? <span className="badge paid">Primary</span> : <span className="badge">Additional</span>}</td>
+          </tr>)}
+          {!contacts.length && <tr><td colSpan="5">No contacts added.</td></tr>}
+        </tbody></table>
+      </div>
+    </div>}
+
+    {tab === "business" && <div className="business-summary">
+      <div className="metric-grid account-metrics">
+        <div className="metric"><span>Total Invoices</span><strong>{h.total_invoices || 0}</strong></div>
+        <div className="metric"><span>Paid Amount</span><strong>{inr(h.paid_cents || 0)}</strong></div>
+        <div className="metric"><span>Outstanding</span><strong>{inr(h.outstanding_cents || 0)}</strong></div>
+        <div className="metric"><span>Quotations</span><strong>{h.total_quotations || 0}</strong></div>
+        <div className="metric"><span>Accepted Quotes</span><strong>{h.accepted_quotations || 0}</strong></div>
+      </div>
+      <div className="panel account-section">
+        <h2>Business Snapshot</h2>
+        <div className="account-field-grid">
+          {infoRow("Invoice Count", h.total_invoices || 0)}
+          {infoRow("Quotation Count", h.total_quotations || 0)}
+          {infoRow("Accepted Quotations", h.accepted_quotations || 0)}
+          {infoRow("Outstanding Amount", inr(h.outstanding_cents || 0))}
+        </div>
+      </div>
+    </div>}
   </div>;
 }
 
 function field(label, key, form, set, required = false, type = "text") { return <label>{label}<input type={type} required={required} value={form[key] || ""} onChange={e => set(key, e.target.value)} /></label>; }
 function area(label, key, form, set, required = false) { return <label>{label}<textarea required={required} value={form[key] || ""} onChange={e => set(key, e.target.value)} /></label>; }
+function initials(value = "") { return value.split(" ").filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "C"; }
+function displayValue(value) { return value === 0 || value ? value : "-"; }
+function infoTile(label, value) { return <div className="account-info-tile"><span>{label}</span><strong>{displayValue(value)}</strong></div>; }
+function infoRow(label, value, multiline = false) { return <div className={`account-field ${multiline ? "multiline" : ""}`}><span>{label}</span><strong>{displayValue(value)}</strong></div>; }
 function formatDate(value) { return value ? new Date(value).toLocaleDateString("en-IN") : "-"; }
