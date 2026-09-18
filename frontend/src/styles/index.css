@@ -467,3 +467,33 @@ input[readonly]{background:#f8fafc;color:#405574;font-weight:700}
 
 /* Project-wide typography */
 html,body,#root,button,input,select,textarea,.button-link,.file-action{font-family:'Inter',sans-serif}
+
+/* Customer form readability and spacing */
+.customer-form{max-width:1280px;gap:18px}
+.customer-form .form-page-head{border-color:#e5e7eb;background:#fff;padding:16px 18px}
+.customer-form .panel{border-radius:12px;overflow:hidden}
+.customer-form .grid.four{grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px;padding:18px}
+.customer-form label{display:flex!important;min-height:auto!important;border:0!important;flex-direction:column!important;align-items:stretch!important;gap:7px!important;padding:0!important;color:#374151!important;font-size:12px!important;font-weight:650!important;letter-spacing:0!important;text-transform:none!important}
+.customer-form label:has(textarea){grid-column:1 / -1}
+.customer-form input,.customer-form select,.customer-form textarea{min-height:40px!important;border:1px solid #cfd8e3!important;border-radius:9px!important;background:#fff!important;color:#071326!important;font-size:14px!important;padding:9px 11px!important;box-shadow:none!important}
+.customer-form textarea{min-height:88px!important}
+.customer-form input:focus,.customer-form select:focus,.customer-form textarea:focus{outline:3px solid #7c3aed1f!important;border-color:#7c3aed!important;box-shadow:none!important}
+.customer-form .inline-title{background:#f8fafc!important}
+.customer-form .contact-list{display:flex;flex-direction:column;gap:12px;padding:16px 18px}
+.customer-form .contact-row{grid-template-columns:1fr 1fr 1.2fr 1fr auto auto;gap:10px}
+.customer-form .contact-row input{border:1px solid #cfd8e3!important;border-radius:9px!important}
+.customer-form .checkline{align-items:center!important;flex-direction:row!important;white-space:nowrap}
+@media(max-width:900px){
+  .customer-form .grid.four,.customer-form .contact-row{grid-template-columns:1fr}
+}
+
+/* Purple login brand treatment */
+.auth-shell{background:linear-gradient(135deg,#f7f2ff 0%,#f3e8ff 48%,#ffffff 100%)}
+.login-stage{border-color:#ddd6fe}
+.login-hero{background:linear-gradient(155deg,#2e1065 0%,#5b21b6 52%,#7c3aed 100%)}
+.login-logo,.login-brand .brand-mark{background:#7c3aed;color:#fff}
+.login-logo.has-logo,.login-brand .brand-mark.has-logo{background:transparent!important;border-color:#c4b5fd}
+.login-logo img,.login-brand .brand-mark img{background:transparent!important;padding:0!important;object-fit:contain}
+.login-hero h1{font-size:34px;line-height:1.1}
+.login-hero p{font-size:16px;line-height:1.55;color:#ede9fe}
+.login-contact span{border-color:#c4b5fd66;color:#fff}

@@ -41,9 +41,8 @@ export default function Login({ onLogin }) {
             {branding?.logoPath && <img src={`${API_ORIGIN}${branding.logoPath}`} alt={`${branding.name || "EKOVITS"} logo`} />}
           </div>
           <div>
-            <p className="eyebrow">Secure billing portal</p>
-            <h1>{branding?.name || "EKOVITS CONSULTING LLP"}</h1>
-            <p>Manage invoices, quotations, GST records, payments, reports, and account settings from one production workspace.</p>
+            <h1>EKOVITS CONSULTING LLP</h1>
+            <p>Internal Operations, Invoicing & RFQ, RFP, PO Management Portal.</p>
           </div>
           <div className="login-contact">
             <span>{branding?.website || "www.ekovits.com"}</span>

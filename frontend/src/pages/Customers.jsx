@@ -108,7 +108,7 @@ export function CustomerForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState({ ...blank, ...initial, contacts: initial.contacts?.length ? initial.contacts : [{ name: initial.contactPerson || "", designation: initial.designation || "", email: initial.email || "", phone: initial.contactNumber || "", isPrimary: true }] });
   const set = (key, value) => setForm({ ...form, [key]: value });
   const setContact = (index, next) => set("contacts", form.contacts.map((contact, i) => i === index ? { ...contact, ...next } : contact));
-  return <form className="stack crm-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
+  return <form className="stack crm-form customer-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
     <div className="form-page-head"><h2>{form.id ? "Customer Details" : "New Customer Details"}</h2><p className="hint">Fields are grouped like a CRM account record. Required fields stay the same as before.</p></div>
     <div className="panel"><h2>Company Information</h2><div className="grid four">
       {field("Company / Customer Name", "name", form, set, true)}

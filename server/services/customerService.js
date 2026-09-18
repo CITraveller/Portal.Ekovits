@@ -55,6 +55,7 @@ export async function updateCustomer(id, body) {
         next.alternatePhone || "", next.country || "India", next.pinCode || "", next.notes || "", next.active !== false]
     );
     await replaceContacts(client, id, next.contacts, rows[0]);
+    await syncCustomerSnapshots(client, id, rows[0]);
     await audit("Customer Updated", "customer", id, rows[0].name, old, rows[0], "", client);
     return getCustomerWithClient(client, id);
   });
@@ -118,6 +119,39 @@ async function replaceContacts(client, customerId, contacts = [], customerRow = 
       [contact.id || uid("ctc"), customerId, contact.name, contact.designation || "", contact.email || "", contact.phone || "", contact.isPrimary === true]
     );
   }
+}
+
+async function syncCustomerSnapshots(client, customerId, row) {
+  await client.query(
+    `UPDATE invoices SET
+      client_name=$2,
+      client_address=$3,
+      shipping_address=$4,
+      contact_person=$5,
+      client_contact=$6,
+      client_email=$7,
+      client_gstin=$8,
+      client_state=$9,
+      client_state_code=$10,
+      updated_at=now()
+     WHERE customer_id=$1 AND deleted_at IS NULL`,
+    [customerId, row.name, row.billing_address, row.shipping_address || "", row.contact_person || "", row.contact_number || "",
+      row.email || "", String(row.gstin || "").toUpperCase(), row.state || "", row.state_code || ""]
+  );
+  await client.query(
+    `UPDATE quotations SET
+      client_name=$2,
+      client_address=$3,
+      client_contact=$4,
+      client_email=$5,
+      client_gstin=$6,
+      client_state=$7,
+      client_state_code=$8,
+      updated_at=now()
+     WHERE customer_id=$1 AND deleted_at IS NULL`,
+    [customerId, row.name, row.billing_address, row.contact_number || "", row.email || "", String(row.gstin || "").toUpperCase(),
+      row.state || "", row.state_code || ""]
+  );
 }
 
 async function customerHistory(customer, client = null) {

@@ -177,14 +177,19 @@ export async function updateInvoiceGstPaidStatus(id, gstPaid, user = null) {
 export async function deleteInvoice(id, reason = "") {
   const old = await getInvoice(id);
   if (!String(reason || "").trim()) throw badRequest("Deletion reason is required");
-  if (old.invoiceStatus === "Draft" && old.paymentStatus === "Unpaid" && !old.imported) {
-    await query("DELETE FROM invoices WHERE id=$1", [id]);
-    await audit("Invoice Deleted", "invoice", id, `Draft invoice ${old.invoiceNo} deleted`, old, null, reason, null, old.invoiceNo);
-    return { deleted: true, mode: "hard" };
-  }
-  await query("UPDATE invoices SET deleted_at=now(), deleted_reason=$2, updated_at=now() WHERE id=$1", [id, reason]);
-  await audit("Invoice Soft Deleted", "invoice", id, `Invoice ${old.invoiceNo} hidden from active records`, old, { deleted: true }, reason, null, old.invoiceNo);
-  return { deleted: true, mode: "soft" };
+  return withTransaction(async (client) => {
+    if (old.invoiceStatus === "Draft" && old.paymentStatus === "Unpaid" && !old.imported) {
+      await client.query("DELETE FROM invoices WHERE id=$1", [id]);
+      await releaseInvoiceNumberIfLatest(client, old.invoiceNo);
+      await audit("Invoice Deleted", "invoice", id, `Draft invoice ${old.invoiceNo} deleted`, old, null, reason, client, old.invoiceNo);
+      return { deleted: true, mode: "hard" };
+    }
+    const tombstoneNo = `${old.invoiceNo}__deleted__${Date.now()}`;
+    await client.query("UPDATE invoices SET invoice_no=$2, deleted_at=now(), deleted_reason=$3, updated_at=now() WHERE id=$1", [id, tombstoneNo, reason]);
+    await releaseInvoiceNumberIfLatest(client, old.invoiceNo);
+    await audit("Invoice Soft Deleted", "invoice", id, `Invoice ${old.invoiceNo} hidden from active records`, old, { deleted: true }, reason, client, old.invoiceNo);
+    return { deleted: true, mode: "soft" };
+  });
 }
 
 export async function attachOriginalDocument(id, file, user = null) {
@@ -353,6 +358,23 @@ async function reserveInvoiceNumberWithClient(client) {
     reservedNumber: Number(row.reserved_number),
     nextInvoiceNumber: Number(row.next_number)
   };
+}
+
+async function releaseInvoiceNumberIfLatest(client, invoiceNo) {
+  const parsed = parseInvoiceNumber(invoiceNo);
+  if (!parsed) return;
+  const { rows } = await client.query("SELECT prefix, next_number FROM invoice_number_sequences WHERE id='default' FOR UPDATE");
+  const sequence = rows[0];
+  if (!sequence) return;
+  if ((sequence.prefix || "") !== parsed.prefix || Number(sequence.next_number) !== parsed.number + 1) return;
+  await client.query("UPDATE invoice_number_sequences SET next_number=$1, updated_at=now() WHERE id='default'", [parsed.number]);
+  await client.query("UPDATE company_settings SET invoice_prefix=$1, next_invoice_number=$2, updated_at=now() WHERE id='company'", [parsed.prefix, parsed.number]);
+}
+
+function parseInvoiceNumber(invoiceNo = "") {
+  const match = String(invoiceNo).match(/^(.*?)(\d+)$/);
+  if (!match) return null;
+  return { prefix: match[1] || "", number: Number(match[2]) };
 }
 
 function notFound(message) {
