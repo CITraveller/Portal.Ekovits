@@ -70,7 +70,11 @@ export async function deactivateCustomer(id) {
 export async function deleteCustomerPermanently(id) {
   const old = await getCustomer(id);
   return withTransaction(async (client) => {
-    await client.query("DELETE FROM customers WHERE id=$1", [id]);
+    await client.query("UPDATE invoices SET customer_id=NULL, updated_at=now() WHERE customer_id=$1", [id]);
+    await client.query("UPDATE quotations SET customer_id=NULL, updated_at=now() WHERE customer_id=$1", [id]);
+    await client.query("DELETE FROM customer_contacts WHERE customer_id=$1", [id]);
+    const { rowCount } = await client.query("DELETE FROM customers WHERE id=$1", [id]);
+    if (!rowCount) throw notFound("Customer not found");
     await audit("Customer Permanently Deleted", "customer", id, old.name, old, null, "Permanent delete requested from customer management", client);
     return { deleted: true, id };
   });

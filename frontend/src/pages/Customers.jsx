@@ -42,10 +42,14 @@ export default function Customers({ ctx }) {
   const deletePermanent = async (customer) => {
     const confirmed = confirm(`Permanently delete ${customer.name} from the database?\n\nThis removes the customer record and saved contacts. Existing invoices and quotations will remain as historical records.`);
     if (!confirmed) return;
-    await api.customers.deletePermanent(customer.id);
-    ctx.notify("Customer permanently deleted.");
-    if (profile?.id === customer.id) closeSubpage();
-    await ctx.reload();
+    try {
+      await api.customers.deletePermanent(customer.id);
+      ctx.notify("Customer permanently deleted.");
+      if (profile?.id === customer.id) closeSubpage();
+      await ctx.reload();
+    } catch (err) {
+      ctx.notify(err.message, "err");
+    }
   };
   if (view === "form" && editing) {
     return <section className="view active">
