@@ -19,5 +19,10 @@ customersRouter.delete("/:id/permanent", async (req, res, next) => {
   try { res.json({ success: true, data: await deleteCustomerPermanently(req.params.id) }); } catch (error) { next(error); }
 });
 customersRouter.delete("/:id", async (req, res, next) => {
-  try { res.json({ success: true, data: await deactivateCustomer(req.params.id) }); } catch (error) { next(error); }
+  try {
+    const result = req.query.permanent === "true"
+      ? await deleteCustomerPermanently(req.params.id)
+      : await deactivateCustomer(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (error) { next(error); }
 });

@@ -71,14 +71,29 @@ export async function deactivateCustomer(id) {
 export async function deleteCustomerPermanently(id) {
   const old = await getCustomer(id);
   return withTransaction(async (client) => {
-    await client.query("UPDATE invoices SET customer_id=NULL, updated_at=now() WHERE customer_id=$1", [id]);
-    await client.query("UPDATE quotations SET customer_id=NULL, updated_at=now() WHERE customer_id=$1", [id]);
-    await client.query("DELETE FROM customer_contacts WHERE customer_id=$1", [id]);
+    await detachCustomerReferences(client, id);
     const { rowCount } = await client.query("DELETE FROM customers WHERE id=$1", [id]);
     if (!rowCount) throw notFound("Customer not found");
     await audit("Customer Permanently Deleted", "customer", id, old.name, old, null, "Permanent delete requested from customer management", client);
     return { deleted: true, id };
   });
+}
+
+async function detachCustomerReferences(client, customerId) {
+  if (await tableExists(client, "invoices")) {
+    await client.query("UPDATE invoices SET customer_id=NULL, updated_at=now() WHERE customer_id=$1", [customerId]);
+  }
+  if (await tableExists(client, "quotations")) {
+    await client.query("UPDATE quotations SET customer_id=NULL, updated_at=now() WHERE customer_id=$1", [customerId]);
+  }
+  if (await tableExists(client, "customer_contacts")) {
+    await client.query("DELETE FROM customer_contacts WHERE customer_id=$1", [customerId]);
+  }
+}
+
+async function tableExists(client, tableName) {
+  const { rows } = await client.query("SELECT to_regclass($1) AS table_name", [`public.${tableName}`]);
+  return Boolean(rows[0]?.table_name);
 }
 
 async function getCustomerWithClient(client, id) {

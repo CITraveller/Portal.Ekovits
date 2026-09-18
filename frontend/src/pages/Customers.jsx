@@ -11,10 +11,12 @@ export default function Customers({ ctx }) {
   const [editing, setEditing] = useState(null);
   const [profile, setProfile] = useState(null);
   const [view, setView] = useState("list");
+  const [deletedIds, setDeletedIds] = useState([]);
   const rows = useMemo(() => ctx.customers
+    .filter(c => !deletedIds.includes(c.id))
     .filter(c => [c.name, c.legalName, c.gstin, c.contactPerson, c.contactNumber, c.email, c.customerType].join(" ").toLowerCase().includes(search.toLowerCase()))
     .filter(c => status === "all" || (status === "active" ? c.active : !c.active))
-    .filter(c => type === "all" || c.customerType === type), [ctx.customers, search, status, type]);
+    .filter(c => type === "all" || c.customerType === type), [ctx.customers, deletedIds, search, status, type]);
   const save = async (form) => {
     editing?.id ? await api.customers.update(editing.id, form) : await api.customers.create(form);
     ctx.notify("Customer saved.");
@@ -45,6 +47,7 @@ export default function Customers({ ctx }) {
     try {
       await api.customers.deletePermanent(customer.id);
       ctx.notify("Customer permanently deleted.");
+      setDeletedIds(ids => [...ids, customer.id]);
       if (profile?.id === customer.id) closeSubpage();
       await ctx.reload();
     } catch (err) {

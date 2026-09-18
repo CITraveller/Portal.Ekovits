@@ -32,7 +32,7 @@ export const api = {
     create: data => request("/customers", { method: "POST", body: data }),
     update: (id, data) => request(`/customers/${id}`, { method: "PUT", body: data }),
     remove: id => request(`/customers/${id}`, { method: "DELETE" }),
-    deletePermanent: id => request(`/customers/${id}/permanent`, { method: "DELETE" })
+    deletePermanent: id => request(`/customers/${id}?permanent=true`, { method: "DELETE" })
   },
   hsn: {
     list: search => request(`/hsn${search ? `?search=${encodeURIComponent(search)}` : ""}`),
