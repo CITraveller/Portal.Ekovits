@@ -1,5 +1,5 @@
 import express from "express";
-import { createCustomer, deactivateCustomer, getCustomer, listCustomers, updateCustomer } from "../services/customerService.js";
+import { createCustomer, deactivateCustomer, deleteCustomerPermanently, getCustomer, listCustomers, updateCustomer } from "../services/customerService.js";
 
 export const customersRouter = express.Router();
 
@@ -14,6 +14,9 @@ customersRouter.post("/", async (req, res, next) => {
 });
 customersRouter.put("/:id", async (req, res, next) => {
   try { res.json({ success: true, data: await updateCustomer(req.params.id, req.body) }); } catch (error) { next(error); }
+});
+customersRouter.delete("/:id/permanent", async (req, res, next) => {
+  try { res.json({ success: true, data: await deleteCustomerPermanently(req.params.id) }); } catch (error) { next(error); }
 });
 customersRouter.delete("/:id", async (req, res, next) => {
   try { res.json({ success: true, data: await deactivateCustomer(req.params.id) }); } catch (error) { next(error); }

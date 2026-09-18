@@ -39,6 +39,14 @@ export default function Customers({ ctx }) {
     setProfile(null);
     setView("list");
   };
+  const deletePermanent = async (customer) => {
+    const confirmed = confirm(`Permanently delete ${customer.name} from the database?\n\nThis removes the customer record and saved contacts. Existing invoices and quotations will remain as historical records.`);
+    if (!confirmed) return;
+    await api.customers.deletePermanent(customer.id);
+    ctx.notify("Customer permanently deleted.");
+    if (profile?.id === customer.id) closeSubpage();
+    await ctx.reload();
+  };
   if (view === "form" && editing) {
     return <section className="view active">
       <div className="section-head">
@@ -55,6 +63,7 @@ export default function Customers({ ctx }) {
         <div className="actions">
           <button className="secondary" onClick={closeSubpage}>Back to Customers</button>
           <button className="primary" onClick={() => openForm(profile)}>Edit Customer</button>
+          <button className="danger" onClick={() => deletePermanent(profile)}>Delete Customer</button>
         </div>
       </div>
       <CustomerProfile customer={profile} />
@@ -82,7 +91,7 @@ export default function Customers({ ctx }) {
             <td><span className="badge">{c.customerType}</span></td>
             <td><span className={`badge ${c.active ? "paid" : "cancel"}`}>{c.active ? "Active" : "Inactive"}</span></td>
             <td>{formatDate(c.createdAt)}</td>
-            <td><div className="record-actions"><button className="small secondary" onClick={() => openProfile(c)}>View</button><button className="small secondary" onClick={() => openForm(c)}>Edit</button>{c.active && <button className="small danger" onClick={async () => { if (confirm(`Deactivate ${c.name}?`)) { await api.customers.remove(c.id); await ctx.reload(); } }}>Deactivate</button>}</div></td>
+            <td><div className="record-actions"><button className="small secondary" onClick={() => openProfile(c)}>View</button><button className="small secondary" onClick={() => openForm(c)}>Edit</button>{c.active && <button className="small danger" onClick={async () => { if (confirm(`Deactivate ${c.name}?`)) { await api.customers.remove(c.id); await ctx.reload(); } }}>Deactivate</button>}<button className="small danger" onClick={() => deletePermanent(c)}>Delete</button></div></td>
           </tr>)}
           {!rows.length && <tr><td colSpan="9">No customers.</td></tr>}
         </tbody></table>

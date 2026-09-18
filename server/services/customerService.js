@@ -67,6 +67,15 @@ export async function deactivateCustomer(id) {
   return mapCustomer(rows[0]);
 }
 
+export async function deleteCustomerPermanently(id) {
+  const old = await getCustomer(id);
+  return withTransaction(async (client) => {
+    await client.query("DELETE FROM customers WHERE id=$1", [id]);
+    await audit("Customer Permanently Deleted", "customer", id, old.name, old, null, "Permanent delete requested from customer management", client);
+    return { deleted: true, id };
+  });
+}
+
 async function getCustomerWithClient(client, id) {
   const { rows } = await client.query("SELECT * FROM customers WHERE id=$1", [id]);
   const customer = mapCustomer(rows[0]);

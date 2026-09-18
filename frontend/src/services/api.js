@@ -5,6 +5,7 @@ async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     headers: options.body instanceof FormData ? undefined : { "Content-Type": "application/json" },
     credentials: "include",
+    cache: "no-store",
     ...options,
     body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined
   });
@@ -30,7 +31,8 @@ export const api = {
     get: id => request(`/customers/${id}`),
     create: data => request("/customers", { method: "POST", body: data }),
     update: (id, data) => request(`/customers/${id}`, { method: "PUT", body: data }),
-    remove: id => request(`/customers/${id}`, { method: "DELETE" })
+    remove: id => request(`/customers/${id}`, { method: "DELETE" }),
+    deletePermanent: id => request(`/customers/${id}/permanent`, { method: "DELETE" })
   },
   hsn: {
     list: search => request(`/hsn${search ? `?search=${encodeURIComponent(search)}` : ""}`),

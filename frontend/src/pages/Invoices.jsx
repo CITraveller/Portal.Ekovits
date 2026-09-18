@@ -131,11 +131,13 @@ export default function Invoices({ ctx, initialFilter = "all" }) {
             <div className="action-menu">
               <button className="icon-action action-trigger" aria-label="More invoice actions" title="More actions" onClick={() => setOpenActions(openActions === invoice.id ? null : invoice.id)}><MoreHorizontal size={18} /></button>
               {openActions === invoice.id && <div className="action-dropdown">
-                <p>Payment Status</p>
-                {["Paid", "Partially Paid", "Unpaid"].map(status => <button key={status} onClick={() => setPaymentStatus(invoice, status)}><span className={invoice.paymentStatus === status ? "check on" : "check"} />{status}</button>)}
-                <p>GST Status</p>
-                <button disabled={!Number(invoice.totals?.totalGstCents || 0)} onClick={() => setGstStatus(invoice, true)}><span className={invoice.gstPaid ? "check on" : "check"} />GST Paid</button>
-                <button disabled={!Number(invoice.totals?.totalGstCents || 0)} onClick={() => setGstStatus(invoice, false)}><span className={!invoice.gstPaid && Number(invoice.totals?.totalGstCents || 0) ? "check on" : "check"} />GST Pending</button>
+                {invoice.invoiceStatus !== "Cancelled" && <>
+                  <p>Payment Status</p>
+                  {["Paid", "Partially Paid", "Unpaid"].map(status => <button key={status} onClick={() => setPaymentStatus(invoice, status)}><span className={invoice.paymentStatus === status ? "check on" : "check"} />{status}</button>)}
+                  <p>GST Status</p>
+                  <button disabled={!Number(invoice.totals?.totalGstCents || 0)} onClick={() => setGstStatus(invoice, true)}><span className={invoice.gstPaid ? "check on" : "check"} />GST Paid</button>
+                  <button disabled={!Number(invoice.totals?.totalGstCents || 0)} onClick={() => setGstStatus(invoice, false)}><span className={!invoice.gstPaid && Number(invoice.totals?.totalGstCents || 0) ? "check on" : "check"} />GST Pending</button>
+                </>}
                 <p>Documents</p>
                 {invoice.originalDocumentPath && <a href={api.invoices.originalDocumentUrl(invoice.id)}>Original PDF</a>}
                 {invoice.imported && <label>Attach Original PDF<input type="file" accept="application/pdf" onChange={e => uploadOriginal(invoice, e.target.files?.[0])} /></label>}
@@ -190,6 +192,7 @@ function displayInvoiceStatus(invoice) {
 }
 
 function displayPaymentStatus(invoice) {
+  if (invoice.invoiceStatus === "Cancelled") return "Cancelled";
   if (!Number(invoice.totals?.totalGstCents || 0) && invoice.paymentStatus === "Unpaid") return "Not Applicable";
   if (isOverdue(invoice)) return "Overdue";
   return invoice.paymentStatus;
