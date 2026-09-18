@@ -4,6 +4,7 @@ import { calculateTotals, resolvedGstType } from "../utils/calculations.js";
 import { amountInWords, inr } from "../utils/money.js";
 import { Modal } from "../components/Modal.jsx";
 import { InvoicePreview, printInvoice } from "../components/InvoicePreview.jsx";
+import { RichTextEditor } from "../components/RichTextEditor.jsx";
 
 const emptyItem = () => ({ description: "", hsn: "", gstRate: 18, qty: 1, rate: 0 });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -134,7 +135,7 @@ export function InvoiceItems({ items, hsn, updateItem, addItem, removeItem }) {
     <div className="item-head"><span>Sr.</span><span>Description</span><span>HSN/SAC</span><span>GST %</span><span>Qty</span><span>Rate</span><span>Taxable</span><span></span></div>
     {items.map((item, index) => <div className="item-row" key={index}>
       <span className="sr">{index + 1}</span>
-      <textarea className="desc" value={item.description} onChange={e => updateItem(index, { description: e.target.value })} />
+      <RichTextEditor value={item.description} onChange={description => updateItem(index, { description })} />
       <input className="hsn" list="hsnCodes" value={item.hsn} onChange={e => {
         const h = hsn.find(x => x.code === e.target.value);
         updateItem(index, h ? { hsn: h.code, gstRate: h.gstRate } : { hsn: e.target.value });

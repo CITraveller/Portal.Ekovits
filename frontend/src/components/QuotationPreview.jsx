@@ -1,5 +1,6 @@
 import { amountInWords, inr, money } from "../utils/money.js";
 import { API_ORIGIN } from "../services/api.js";
+import { toRichTextHtml } from "../utils/richText.js";
 
 export function QuotationPreview({ quotation, settings }) {
   const company = quotation.companySnapshot || settings || {};
@@ -48,7 +49,7 @@ export function QuotationPreview({ quotation, settings }) {
             {items.map(item => (
               <tr key={item.id || item.srNo}>
                 <td className="center">{item.srNo}</td>
-                <td>{item.description}</td>
+                <td><div className="rich-print" dangerouslySetInnerHTML={{ __html: toRichTextHtml(item.description) }} /></td>
                 <td className="center">{item.hsn}</td>
                 <td className="center">{item.gstRate}%</td>
                 <td className="center">{item.qty}</td>
