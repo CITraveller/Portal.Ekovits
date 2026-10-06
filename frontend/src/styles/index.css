@@ -55,7 +55,7 @@ textarea{min-height:72px;resize:vertical}input:focus,select:focus,textarea:focus
 
 /* TO / Date row */
 .to-cell{min-height:24mm;font-size:10pt;line-height:1.35;padding:6px 8px}
-.date-cell{font-size:10pt;font-weight:700;padding:6px 8px;vertical-align:top}
+.date-cell{font-size:10pt;font-weight:700;padding:6px 8px;vertical-align:top;text-align:right}
 
 /* item table header + rows */
 .col-head th{padding:5px 6px}

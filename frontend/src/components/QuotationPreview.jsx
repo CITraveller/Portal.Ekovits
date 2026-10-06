@@ -1,3 +1,4 @@
+import { printWithTitle } from "../utils/printTitle.js";
 import { amountInWords, inr, money } from "../utils/money.js";
 import { API_ORIGIN } from "../services/api.js";
 import { toRichTextHtml } from "../utils/richText.js";
@@ -39,7 +40,7 @@ export function QuotationPreview({ quotation, settings }) {
                 {quotation.subject && <><b>Subject:</b> {quotation.subject}</>}
               </td>
               <td colSpan="2" className="date-cell">
-                <b>Date:</b> {formatDate(quotation.quotationDate)}<br />
+                <b>Date:</b> {formatQuoteDate(quotation.quotationDate)}<br />
                 <b>Valid Until:</b> {formatDate(quotation.validUntil) || "-"}
               </td>
             </tr>
@@ -85,9 +86,23 @@ export function QuotationPreview({ quotation, settings }) {
 export function printQuotation() {
   const root = document.getElementById("printRoot");
   root.innerHTML = document.querySelector(".quotation-doc")?.outerHTML || "";
-  window.print();
+  printWithTitle(`QUOTATION- ${quotation.quotationNo}`);
 }
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString("en-IN") : "";
+}
+
+function formatQuoteDate(value) {
+  if (!value) return "";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    const [y, m, d] = text.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const dt = new Date(value);
+  if (isNaN(dt)) return text;
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${dt.getFullYear()}`;
 }

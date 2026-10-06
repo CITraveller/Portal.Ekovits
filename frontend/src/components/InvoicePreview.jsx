@@ -1,3 +1,4 @@
+import { printWithTitle } from "../utils/printTitle.js";
 import { amountInWords, inr, money } from "../utils/money.js";
 import { API_ORIGIN } from "../services/api.js";
 import { toRichTextHtml } from "../utils/richText.js";
@@ -47,7 +48,7 @@ export function InvoicePreview({ invoice, settings }) {
                 <b>GSTIN:</b> {invoice.clientGstin || "-"}
               </td>
               <td colSpan="2" className="date-cell">
-                <b>Date:</b> {formatDate(invoice.invoiceDate)}
+                <b>Date:</b> {formatInvoiceDate(invoice.invoiceDate)}
               </td>
             </tr>
             <tr className="col-head">
@@ -167,7 +168,7 @@ export function InvoicePreview({ invoice, settings }) {
 export function printInvoice(invoice, settings) {
   const root = document.getElementById("printRoot");
   root.innerHTML = document.querySelector(".invoice-doc")?.outerHTML || "";
-  window.print();
+  printWithTitle(`TAX INVOICE- ${invoice.invoiceNo}`);
 }
 
 function summarizeByHsn(items) {
@@ -184,4 +185,18 @@ function summarizeByHsn(items) {
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString("en-IN") : "";
+}
+
+function formatInvoiceDate(value) {
+  if (!value) return "";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    const [y, m, d] = text.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const dt = new Date(value);
+  if (isNaN(dt)) return text;
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${dt.getFullYear()}`;
 }
