@@ -10,7 +10,8 @@ export function resolvedGstType(companyState, customerState, selected = "auto") 
 export function normalizeItems(items = []) {
   return items.map((item, index) => {
     const qty = Number(item.qty || 0);
-    const rateCents = Number.isFinite(Number(item.rateCents)) ? Number(item.rateCents) : toCents(item.rate);
+    const hasRate = item.rate !== undefined && item.rate !== null && item.rate !== "";
+    const rateCents = hasRate ? toCents(item.rate) : Number(item.rateCents || 0);
     return {
       id: item.id,
       srNo: Number(item.srNo || item.sr_no || index + 1),

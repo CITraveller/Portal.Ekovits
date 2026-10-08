@@ -146,7 +146,7 @@ async function insertItems(client, quotationId, items) {
     await client.query(
       `INSERT INTO quotation_items (id,quotation_id,sr_no,description,hsn,gst_rate,qty,rate_cents,taxable_cents)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [item.id || uid("qitem"), quotationId, item.srNo, item.description, item.hsn, item.gstRate, item.qty, item.rateCents, item.taxableCents]
+      [uid("qitem"), quotationId, item.srNo, item.description, item.hsn, item.gstRate, item.qty, item.rateCents, item.taxableCents]
     );
   }
 }

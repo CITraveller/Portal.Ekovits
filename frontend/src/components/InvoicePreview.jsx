@@ -168,7 +168,7 @@ export function InvoicePreview({ invoice, settings }) {
 export function printInvoice(invoice, settings) {
   const root = document.getElementById("printRoot");
   root.innerHTML = document.querySelector(".invoice-doc")?.outerHTML || "";
-  printWithTitle(`TAX INVOICE- ${invoice.invoiceNo}`);
+  window.print();
 }
 
 function summarizeByHsn(items) {

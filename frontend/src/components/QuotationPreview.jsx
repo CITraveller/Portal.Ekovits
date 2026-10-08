@@ -86,7 +86,7 @@ export function QuotationPreview({ quotation, settings }) {
 export function printQuotation() {
   const root = document.getElementById("printRoot");
   root.innerHTML = document.querySelector(".quotation-doc")?.outerHTML || "";
-  printWithTitle(`QUOTATION- ${quotation.quotationNo}`);
+  window.print();
 }
 
 function formatDate(value) {
